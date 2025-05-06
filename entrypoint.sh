@@ -16,7 +16,7 @@ wget -qO /models/model.gguf "$MODEL_URL"
 echo "[entrypoint] Starting server on port ${PORT:-8000} ..."
 echo "[entrypoint] Listing build dir:"
 ls -l /app/llama.cpp/build
-exec /app/llama.cpp/build/main \
+exec /app/llama.cpp/build/bin/main \
   --server \
   -m /models/model.gguf \
   --port "${PORT:-8000}"
