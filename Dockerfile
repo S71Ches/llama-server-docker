@@ -12,20 +12,17 @@ RUN apt-get update && apt-get install -y \
     libopenblas-dev \
     libssl-dev \
     zlib1g-dev \
+    libcurl4-openssl-dev \
     python3 \
     python3-pip
 
-# Клонируем llama.cpp
+# Скачиваем и собираем llama.cpp с поддержкой CUDA
 WORKDIR /app
-RUN git clone https://github.com/ggerganov/llama.cpp.git .
-RUN git submodule update --init --recursive
+RUN git clone https://github.com/ggerganov/llama.cpp.git . && \
+    git submodule update --init --recursive && \
+    cmake -DGGML_CUDA=on . && make -j
 
-# Сборка с CUDA (в 2 этапа с логами)
-RUN cmake -DGGML_CUDA=on . > /tmp/configure.log 2>&1 && \
-    cmake --build . --verbose > /tmp/build.log 2>&1 || \
-    (cat /tmp/configure.log && cat /tmp/build.log && exit 1)
-
-# Открываем порт и создаём том
+# Создаём том и открываем порт
 VOLUME ["/models"]
 EXPOSE 8000
 
