@@ -1,30 +1,23 @@
 FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
 
-# Установка зависимостей
+# Зависимости
 RUN apt-get update && apt-get install -y \
-    build-essential \
-    git \
-    curl \
-    nano \
-    cmake \
-    gcc \
-    g++ \
-    libopenblas-dev \
-    libssl-dev \
-    zlib1g-dev \
-    libcurl4-openssl-dev \
-    python3 \
-    python3-pip
+    git curl nano wget build-essential cmake gcc g++ \
+    libopenblas-dev libssl-dev zlib1g-dev libcurl4-openssl-dev \
+    python3 python3-pip
 
-# Скачиваем и собираем llama.cpp с поддержкой CUDA
+# llama.cpp + сборка с CUDA
 WORKDIR /app
 RUN git clone https://github.com/ggerganov/llama.cpp.git . && \
     git submodule update --init --recursive && \
-    cmake -DGGML_CUDA=on . && make -j
+    cmake -DLLAMA_CUDA=on . && make -j2
 
-# Создаём том и открываем порт
-VOLUME ["/models"]
+# Папка и порт
+RUN mkdir -p /models
 EXPOSE 8000
+VOLUME ["/models"]
 
-# Команда запуска
-CMD ["./server", "-m", "/models/model.gguf", "--port", "8000"]
+# Копируем entrypoint
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
