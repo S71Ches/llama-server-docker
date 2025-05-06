@@ -20,10 +20,12 @@ WORKDIR /app
 RUN git clone https://github.com/ggerganov/llama.cpp.git .
 RUN git submodule update --init --recursive
 
-# Сборка с поддержкой CUDA
-RUN cmake -DGGML_CUDA=on . && cmake --build . --verbose
+# Сборка с CUDA (в 2 этапа с логами)
+RUN cmake -DGGML_CUDA=on . > /tmp/configure.log 2>&1 && \
+    cmake --build . --verbose > /tmp/build.log 2>&1 || \
+    (cat /tmp/configure.log && cat /tmp/build.log && exit 1)
 
-# Создаём том и открываем порт
+# Открываем порт и создаём том
 VOLUME ["/models"]
 EXPOSE 8000
 
