@@ -17,15 +17,15 @@ RUN apt-get update && apt-get install -y \
 
 # Клонируем llama.cpp
 WORKDIR /app
-RUN git clone https://github.com/ggerganov/llama.cpp.git . \
- && git submodule update --init --recursive
+RUN git clone https://github.com/ggerganov/llama.cpp.git .
+RUN git submodule update --init --recursive
 
 # Сборка с поддержкой CUDA
-RUN cmake -DLLAMA_CUBLAS=on . && cmake --build . --verbose
+RUN cmake -DGGML_CUDA=on . && cmake --build . --verbose
 
-# Создаем том и открываем порт
+# Создаём том и открываем порт
 VOLUME ["/models"]
 EXPOSE 8000
 
-# Пока не запускаем сервер, чтобы можно было залезть в контейнер
-CMD ["tail", "-f", "/dev/null"]
+# Команда запуска
+CMD ["./server", "-m", "/models/model.gguf", "--port", "8000"]
