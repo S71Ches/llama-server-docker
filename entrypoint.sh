@@ -14,6 +14,8 @@ wget -qO /models/model.gguf "$MODEL_URL"
 # 3) Запускаем собранный бинарник llama.cpp
 #    В CMake llama.cpp мейн-исполняемый файл называется 'main'
 echo "[entrypoint] Starting server on port ${PORT:-8000} ..."
+echo "[entrypoint] Listing build dir:"
+ls -l /app/llama.cpp/build
 exec /app/llama.cpp/build/main \
   --server \
   -m /models/model.gguf \
