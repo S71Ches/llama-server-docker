@@ -1,31 +1,38 @@
+# 1) Базовый образ с CUDA
 FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
 
-# 1) Системные зависимости
+# 2) Устанавливаем зависимости
 RUN apt-get update && apt-get install -y \
-      build-essential git curl wget cmake \
-      libopenblas-dev libssl-dev zlib1g-dev \
-      libcurl4-openssl-dev \
-      python3 python3-pip \
-    && rm -rf /var/lib/apt/lists/*
+    build-essential \
+    git \
+    curl \
+    wget \
+    cmake \
+    libopenblas-dev \
+    libssl-dev \
+    zlib1g-dev \
+    libcurl4-openssl-dev \
+    python3 \
+    python3-pip \
+  && rm -rf /var/lib/apt/lists/*
 
-# 2) Копируем в контейнер весь llama.cpp как «vendored» исходники
+# 3) Копируем «vendored» llama.cpp
 WORKDIR /app
 COPY llama.cpp ./llama.cpp
 
-# 3) Собираем с CUDA, отключая CURL
+# 4) Собираем llama.cpp с CUDA, без CURL, с параллелизмом 2
 WORKDIR /app/llama.cpp
-RUN cmake -B build \
-      -DGGML_CUDA=ON \
-      -DLLAMA_CURL=OFF \
-      . && \
-    cmake --build build --parallel
+RUN cmake -B build -DGGM_CUDA=ON -DLLAMA_CURL=OFF . \
+ && cmake --build build --parallel 2
 
-# 4) Готовим папку под модель и точку входа
+# 5) Подготавливаем папку под модель и точку входа
 WORKDIR /app
 RUN mkdir -p /models
 
+# 6) Копируем entrypoint и делаем его исполняемым
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+# 7) Экспонируем порт и указываем точку входа
 EXPOSE 8000
 ENTRYPOINT ["/entrypoint.sh"]
