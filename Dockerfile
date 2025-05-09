@@ -1,18 +1,19 @@
 FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
 
-# 1) Системные инструменты + Python / pip
+# 1) Системные зависимости + Python headers
 RUN apt-get update && \
     apt-get install -y \
       build-essential git wget curl \
-      python3 python3-pip && \
-    rm -rf /var/lib/apt/lists/*
+      python3 python3-pip python3-dev cmake \
+    && rm -rf /var/lib/apt/lists/*
 
-# 2) Устанавливаем Python-зависимости в кавычках
+# 2) Устанавливаем Python-зависимости
 RUN pip3 install --no-cache-dir \
       llama-cpp-python \
       fastapi \
-      "uvicorn[standard]"
+      'uvicorn[standard]'
 
+# дальше ваши шаги по копированию entrypoint и пр.
 WORKDIR /app
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
