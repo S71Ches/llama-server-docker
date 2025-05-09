@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Если задали SHOW_HELP, показываем справку и выходим
+if [ "${SHOW_HELP:-}" = "1" ]; then
+  echo "[entrypoint] llama-server help:"
+  exec /app/llama.cpp/build/bin/llama-server --help
+fi
+
+# …далее ваш обычный код…
+
+
 # 1) Проверяем, передали ли URL модели
 if [ -z "${MODEL_URL:-}" ]; then
   echo "ERROR: you must set MODEL_URL environment variable"
