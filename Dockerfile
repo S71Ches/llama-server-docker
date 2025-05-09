@@ -1,7 +1,7 @@
 # 1) Базовый образ с CUDA
 FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
 
-# 2) Системные зависимости + Python-заголовки + Ninja
+# 2) Системные зависимости, в том числе dev-пакет для CURL
 RUN apt-get update && \
     apt-get install -y \
       build-essential \
@@ -16,6 +16,7 @@ RUN apt-get update && \
       libopenblas-dev \
       libssl-dev \
       zlib1g-dev \
+      libcurl4-openssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # 3) Копируем «vendored» llama.cpp для сборки сервера (если он нужен)
