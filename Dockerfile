@@ -20,10 +20,10 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 COPY llama.cpp ./llama.cpp
 
-# 4) Собираем llama.cpp с CUDA, без CURL, с параллелизмом 2
+# 4) Собираем llama.cpp с CUDA, с параллелизмом 2
 WORKDIR /app/llama.cpp
-RUN cmake -B build -DGGM_CUDA=ON -DLLAMA_CURL=OFF . \
- && cmake --build build --parallel 2
+RUN cmake -B build -DGGM_CUDA=ON -DLLAMA_CURL=ON . \
+ && cmake --build build --parallel 2 --target llama-server
 
 # 5) Подготавливаем папку под модель и точку входа
 WORKDIR /app
