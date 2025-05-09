@@ -29,11 +29,16 @@ RUN cmake -B build \
     cmake --build build \
       --parallel 2 \
       --target llama-server
+      
+# 5) Создаём папку для модели
+WORKDIR /app
+RUN mkdir -p /models
 
-# 5) Копируем entrypoint и делаем его исполняемым
+
+# 6) Копируем entrypoint и делаем его исполняемым
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# 6) Открываем порт и задаём точку входа
+# 7) Открываем порт и задаём точку входа
 EXPOSE 8000
 ENTRYPOINT ["/entrypoint.sh"]
