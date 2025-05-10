@@ -1,4 +1,3 @@
-# --------------------------------------------------
 # 1) Базовый образ с CUDA
 FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
 
@@ -33,8 +32,7 @@ RUN cmake -B build \
     cmake --build build --parallel 2 --target llama-server
 
 # --------------------------------------------------
-# 4) Устанавливаем готовый Python-пакет и HTTP-фреймворк
-#    (теперь, когда есть ninja, pip сможет собрать wheel для llama-cpp-python)
+# 4) Устанавливаем Python-зависимости (сборка wheel для llama-cpp-python благодаря ninja)
 WORKDIR /app
 RUN pip3 install --no-cache-dir \
       llama-cpp-python \
@@ -42,13 +40,16 @@ RUN pip3 install --no-cache-dir \
       uvicorn[standard]
 
 # --------------------------------------------------
-# 5) Копируем ваше приложение и точку входа
-COPY server.py    /app/server.py
+# 5) Создаём папку для модели (чтобы wget в entrypoint не падал)
+RUN mkdir -p /models
+
+# --------------------------------------------------
+# 6) Копируем ваше приложение и точку входа
+COPY server.py     /app/server.py
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # --------------------------------------------------
-# 6) Экспонируем порт и запускаем entrypoint
+# 7) Экспонируем порт и запускаем entrypoint
 EXPOSE 8000
 ENTRYPOINT ["/entrypoint.sh"]
-# --------------------------------------------------
