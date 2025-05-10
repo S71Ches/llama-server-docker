@@ -11,12 +11,10 @@ fi
 echo "[entrypoint] Downloading model from $MODEL_URL …"
 wget -qO /models/model.gguf "$MODEL_URL"
 
-# 3) Запускаем llama-server с правильными флагами
-echo "[entrypoint] Starting llama-server on 0.0.0.0:${PORT:-8000} …"
-exec /app/llama.cpp/build/bin/llama-server \
-     --model-url "/models/model.gguf" \
+# 3) Запускаем FastAPI-сервис
+echo "[entrypoint] Starting FastAPI server on 0.0.0.0:${PORT:-8000} …"
+exec uvicorn server:app \
      --host 0.0.0.0 \
      --port "${PORT:-8000}" \
-     --threads "${NUM_THREADS:-4}" \
-     --threads-http "${THREADS_HTTP:-2}" \
-     --no-webui
+     --workers 1 \
+     --threads "${NUM_THREADS:-4}"
