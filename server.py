@@ -10,7 +10,6 @@ class ChatRequest(BaseModel):
 
 @app.post("/v1/chat/completions")
 def chat(req: ChatRequest):
-    # только пример, делайте по spec openai
-    prompt = "\n".join([f"{m['role']}: {m['content']}" for m in req.messages])
+    prompt = "\n".join(f"{m['role']}: {m['content']}" for m in req.messages)
     res = llm(prompt=prompt, max_tokens=128)
     return {"choices": [{"message": {"role": "assistant", "content": res["choices"][0]["text"]}}]}
