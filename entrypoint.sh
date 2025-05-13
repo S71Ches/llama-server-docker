@@ -37,7 +37,7 @@ NGROK_URL=$(curl -s http://127.0.0.1:4040/api/tunnels \
 echo "🔗 Ngrok URL: $NGROK_URL"
 
 # Сохраняем в файл для приложения
-echo "$NGROK_URL" > /workspace/api_url.txt
+echo "$NGROK_URL" > /workspace/api_url_gguf.txt
 
 echo "[entrypoint] Запускаем FastAPI-сервер…"
 exec uvicorn server:app \
