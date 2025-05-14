@@ -26,8 +26,8 @@ fi
 echo "[entrypoint] Получен ngrok URL: $NGROK_URL"
 
 # 3) Отправляем уведомление в Telegram
-curl -s -X POST "https://api.telegram.org/bot<TELEGRAM_TOKEN>/sendMessage" \
-  -d chat_id=<YOUR_CHAT_ID> \
+curl -s -X POST "https://api.telegram.org/bot7773349253:AAHEE_dzUiG7tzMwfBNHt2FesGEEqE2O7M0/sendMessage" \
+  -d chat_id=1273988384 \
   -d text="🟢 Модель активна: $NGROK_URL%0A⏰ Обновлено: $(date +'%Y-%m-%d %H:%M:%S')" \
   >/dev/null
 
