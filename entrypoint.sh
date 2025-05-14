@@ -3,10 +3,16 @@ set -eo pipefail
 
 echo "[entrypoint] Запуск entrypoint.sh …"
 
-# 1) Старт ngrok в фоне, он будет туннелить на порт $PORT (или 8000 по умолчанию)
+# 0) Настроим токен ngrok, если есть
+if [[ -n "$NGROK_AUTHTOKEN" ]]; then
+  echo "[entrypoint] Настраиваем ngrok authtoken…"
+  ngrok config add-authtoken "$NGROK_AUTHTOKEN"
+fi
+
+# 1) Старт ngrok в фоне
 nohup ngrok http "${PORT:-8000}" --log=stdout > /tmp/ngrok.log 2>&1 &
 
-# 2) Ждём появления публичного HTTPS-URL от ngrok
+# 2) Ждём появление туннеля…
 echo "[entrypoint] Ожидание ngrok URL…"
 NGROK_URL=""
 for i in {1..10}; do
