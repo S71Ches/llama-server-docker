@@ -1,28 +1,18 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel
 from llama_cpp import Llama
 
 app = FastAPI()
 
-# загружаем GGUF-модель
+# Загружаем модель из /models/model.gguf
 llm = Llama(model_path="/models/model.gguf")
 
-# возвращает динамическую ngrok-ссылку для GGUF-модели
-@app.get("/ngrok-url-gguf")
-def get_ngrok_url_gguf():
-    try:
-        with open("/workspace/api_url_gguf.txt", "r") as f:
-            url = f.read().strip()
-        return {"url": url}
-    except FileNotFoundError:
-        raise HTTPException(404, detail="Ngrok URL для GGUF-модели не найден")
-
-# проверка, что сервер жив
+# Проверка, что сервер жив
 @app.get("/")
 def root():
     return {"message": "Модель загружена и готова!"}
 
-# основной чат-эндпоинт
+# Основной чат-эндпоинт
 class ChatRequest(BaseModel):
     messages: list[dict]
 
@@ -32,6 +22,11 @@ def chat(req: ChatRequest):
     res = llm(prompt=prompt, max_tokens=128)
     return {
         "choices": [
-            {"message": {"role": "assistant", "content": res["choices"][0]["text"]}}
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": res["choices"][0]["text"]
+                }
+            }
         ]
     }
