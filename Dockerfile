@@ -8,13 +8,12 @@ RUN apt-get update && \
       libopenblas-dev libssl-dev zlib1g-dev libcurl4-openssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# 2) Установим ngrok v3 (CLI для туннелирования)
-RUN wget -q https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz && \
-    tar -xzf ngrok-v3-stable-linux-amd64.tgz && \
+# 2) Установим ngrok (CLI для туннелирования)
+RUN wget -q https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip && \
+    unzip ngrok-stable-linux-amd64.zip && \
     mv ngrok /usr/local/bin/ngrok && \
     chmod +x /usr/local/bin/ngrok && \
-    rm ngrok-v3-stable-linux-amd64.tgz
-
+    rm ngrok-stable-linux-amd64.zip
 
 # 3) Собираем llama-server
 WORKDIR /app/llama.cpp
