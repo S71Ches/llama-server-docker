@@ -6,7 +6,7 @@ echo "[entrypoint] Запуск entrypoint.sh …"
 # 0) Настроим токен ngrok, если есть
 if [[ -n "$NGROK_AUTHTOKEN" ]]; then
   echo "[entrypoint] Настраиваем ngrok authtoken…"
-  ngrok config add-authtoken "$NGROK_AUTHTOKEN"
+  ngrok authtoken "$NGROK_TOKEN"
 fi
 
 # 1) Старт ngrok в фоне
