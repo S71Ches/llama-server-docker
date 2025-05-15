@@ -1,37 +1,31 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-echo "[entrypoint] Запуск entrypoint.sh …"
+echo "[entrypoint] Запуск entrypoint.sh…"
 
-# ——————————————————————————————————————
 # 0) Проверяем обязательные переменные
-: "${NGROK_AUTHTOKEN:?ERROR: нужно задать NGROK_AUTHTOKEN}"
-: "${NGROK_HOSTNAME:?ERROR: нужно задать NGROK_HOSTNAME (например mymodel.ngrok.io)}"
+: "${CF_TUNNEL_TOKEN:?ERROR: нужно задать CF_TUNNEL_TOKEN}"
+: "${CF_HOSTNAME:?ERROR: нужно задать CF_HOSTNAME (например domen.xyz)}"
 PORT="${PORT:-8000}"
+WORKERS="${WORKERS:-1}"
 
-# ——————————————————————————————————————
-# 1) Сохраняем токен (ngrok автоматически читает ~/.config/ngrok/ngrok.yml)
-echo "[entrypoint] Настраиваем ngrok authtoken…"
-ngrok authtoken "${NGROK_AUTHTOKEN}" >/dev/null 2>&1
+# 1) Старт Cloudflare Tunnel в фоне
+echo "[entrypoint] Старт cloudflared на ${CF_HOSTNAME} → localhost:${PORT}"
+nohup cloudflared tunnel run \
+    --token "${CF_TUNNEL_TOKEN}" \
+    --hostname "${CF_HOSTNAME}" \
+    --url "http://localhost:${PORT}" \
+    --no-autoupdate \
+    > /tmp/cloudflared.log 2>&1 &
 
-# ——————————————————————————————————————
-# 2) Запускаем ngrok с зарезервированным доменом в фоне
-echo "[entrypoint] Стартуем ngrok на ${NGROK_HOSTNAME} → localhost:${PORT}"
-nohup ngrok http --hostname="${NGROK_HOSTNAME}" "${PORT}" \
-     --log=stdout > /tmp/ngrok.log 2>&1 &
-
-# Небольшая пауза, чтобы ngrok успел подняться
+# Даем пару секунд на инициализацию
 sleep 2
 
-NGROK_URL="https://${NGROK_HOSTNAME}"
-echo "[entrypoint] ngrok URL: ${NGROK_URL}"
+CF_URL="https://${CF_HOSTNAME}"
+echo "[entrypoint] Tunnel URL: ${CF_URL}"
+echo "[entrypoint] Модель будет доступна по: ${CF_URL}/v1/chat/completions"
 
-# ——————————————————————————————————————
-# 3) (Опционально) выводим URL в логах для вашего приложения
-echo "[entrypoint] Модель будет доступна по: ${NGROK_URL}/v1/chat/completions"
-
-# ——————————————————————————————————————
-# 4) Копируем вашу модель в /models
+# 2) Копируем .gguf-модель
 echo "[entrypoint] Ищем модель в /workspace…"
 MODEL_SRC=$(ls /workspace/*.gguf 2>/dev/null | head -n1)
 if [ -z "$MODEL_SRC" ]; then
@@ -43,10 +37,9 @@ mkdir -p /models
 cp "$MODEL_SRC" /models/model.gguf
 echo "✅ Скопировали модель в /models/model.gguf"
 
-# ——————————————————————————————————————
-# 5) Запускаем FastAPI-сервер
-echo "[entrypoint] Запускаем сервер на ${PORT}…"
+# 3) Запускаем FastAPI
+echo "[entrypoint] Запускаем сервер uvicorn на ${PORT}…"
 exec uvicorn server:app \
      --host 0.0.0.0 \
      --port "${PORT}" \
-     --workers "${WORKERS:-1}"
+     --workers "${WORKERS}"
