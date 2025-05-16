@@ -1,29 +1,30 @@
 #!/usr/bin/env bash
+# entrypoint.sh
 set -eo pipefail
 
 echo "[entrypoint] Запуск entrypoint.sh…"
 
-# 0) Проверяем обязательные переменные
+# 0) Проверяем обязательные переменные (передаются на уровне Pod)
 : "${CF_TUNNEL_TOKEN:?ERROR: нужно задать CF_TUNNEL_TOKEN}"
-: "${CF_HOSTNAME:?ERROR: нужно задать CF_HOSTNAME (например domen.xyz)}"
+: "${CF_HOSTNAME:?ERROR: нужно задать CF_HOSTNAME (например your.subdomain.chipillm.uk)}"
 PORT="${PORT:-8000}"
 WORKERS="${WORKERS:-1}"
 
-# 1) Старт Cloudflare Tunnel в фоне
-echo "[entrypoint] Старт cloudflared на ${CF_HOSTNAME} → localhost:${PORT}"
+# 1) Старт Cloudflare Tunnel
+echo "[entrypoint] Старт cloudflared для ${CF_HOSTNAME} → localhost:${PORT}"
 nohup cloudflared tunnel run \
+    --no-autoupdate \
     --token "${CF_TUNNEL_TOKEN}" \
     --hostname "${CF_HOSTNAME}" \
     --url "http://localhost:${PORT}" \
-    --no-autoupdate \
     > /tmp/cloudflared.log 2>&1 &
 
-# Даем пару секунд на инициализацию
+# Даём ему пару секунд прогреться
 sleep 2
 
 CF_URL="https://${CF_HOSTNAME}"
 echo "[entrypoint] Tunnel URL: ${CF_URL}"
-echo "[entrypoint] Модель будет доступна по: ${CF_URL}/v1/chat/completions"
+echo "[entrypoint] Модель доступна по: ${CF_URL}/v1/chat/completions"
 
 # 2) Копируем .gguf-модель
 echo "[entrypoint] Ищем модель в /workspace…"
@@ -33,12 +34,11 @@ if [ -z "$MODEL_SRC" ]; then
   exit 1
 fi
 echo "[entrypoint] Модель найдена: $MODEL_SRC"
-mkdir -p /models
 cp "$MODEL_SRC" /models/model.gguf
-echo "✅ Скопировали модель в /models/model.gguf"
+echo "✅ Модель скопирована в /models/model.gguf"
 
 # 3) Запускаем FastAPI
-echo "[entrypoint] Запускаем сервер uvicorn на ${PORT}…"
+echo "[entrypoint] Запускаем uvicorn на порту ${PORT}…"
 exec uvicorn server:app \
      --host 0.0.0.0 \
      --port "${PORT}" \
