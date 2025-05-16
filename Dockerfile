@@ -1,7 +1,6 @@
-# Dockerfile
+# 0) Базовый образ и параметры сборки
 FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
 
-# 0) Параметры сборки: порт и workers
 ARG PORT=8000
 ARG WORKERS=1
 ENV PORT=${PORT}
@@ -20,23 +19,23 @@ RUN wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/c
     mv cloudflared-linux-amd64 /usr/local/bin/cloudflared && \
     chmod +x /usr/local/bin/cloudflared
 
-# 3) Собираем llama-server
+# 3) Собираем llama-server (C++ сервер)
 WORKDIR /app/llama.cpp
 COPY llama.cpp ./
 RUN cmake -B build -DGGM_CUDA=ON -DLLAMA_CURL=ON . \
  && cmake --build build --parallel 2 --target llama-server
 
-# 4) Python-зависимости и рабочая директория
+# 4) Python-окружение
 WORKDIR /app
-RUN pip3 install --no-cache-dir llama-cpp-python fastapi uvicorn[standard]
+RUN pip3 install --no-cache-dir \
+      llama-cpp-python fastapi uvicorn[standard] requests
 
-# 5) Модель и точка входа
+# 5) Копируем точку входа и заготовку для модели
 RUN mkdir -p /models
 COPY server.py /app/server.py
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# 6) Expose порт из переменной
+# 6) Экспортируем порт из аргумента и стартуем entrypoint
 EXPOSE ${PORT}
-
 ENTRYPOINT ["/entrypoint.sh"]
