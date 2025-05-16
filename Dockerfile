@@ -1,4 +1,11 @@
+# Dockerfile
 FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
+
+# 0) Параметры сборки: порт и workers
+ARG PORT=8000
+ARG WORKERS=1
+ENV PORT=${PORT}
+ENV WORKERS=${WORKERS}
 
 # 1) Системные зависимости
 RUN apt-get update && \
@@ -23,11 +30,13 @@ RUN cmake -B build -DGGM_CUDA=ON -DLLAMA_CURL=ON . \
 WORKDIR /app
 RUN pip3 install --no-cache-dir llama-cpp-python fastapi uvicorn[standard]
 
-# 5) Папка для модели и скрипт старта
+# 5) Модель и точка входа
 RUN mkdir -p /models
 COPY server.py /app/server.py
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-EXPOSE 8000
+# 6) Expose порт из переменной
+EXPOSE ${PORT}
+
 ENTRYPOINT ["/entrypoint.sh"]
