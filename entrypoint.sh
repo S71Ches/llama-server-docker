@@ -10,7 +10,6 @@ WORKERS="${WORKERS:-1}"
 
 # 1) Старт named Tunnel
 nohup cloudflared tunnel run LLM_RUNPOD \
-    --no-autoupdate \
   > /tmp/cloudflared.log 2>&1 &
 
 sleep 2
