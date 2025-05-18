@@ -9,7 +9,6 @@ PORT="${PORT:-8000}"
 WORKERS="${WORKERS:-1}"
 
 # 1) Старт named Tunnel
-echo "[entrypoint] Старт cloudflared tunnel run LLM_RUNPOD → localhost:${PORT}"
 nohup cloudflared tunnel run LLM_RUNPOD \
     --no-autoupdate \
     --url "http://localhost:${PORT}" \
