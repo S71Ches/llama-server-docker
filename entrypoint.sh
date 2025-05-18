@@ -4,12 +4,17 @@ set -eo pipefail
 echo "[entrypoint] Запуск entrypoint.sh…"
 
 # 0) Проверяем обязательную переменную только для имени хоста (для эха)
+: "${CF_TUNNEL_TOKEN}:?ERROR: нужно задать {CF_TUNNEL_TOKEN}
 : "${CF_HOSTNAME:?ERROR: нужно задать CF_HOSTNAME (например your.subdomain.chipillm.uk)}"
 PORT="${PORT:-8000}"
 WORKERS="${WORKERS:-1}"
 
 # 1) Старт named Tunnel
-nohup cloudflared tunnel run LLM_RUNPOD \
+echo "[entrypoint] Старт cloudflared Quick Tunnel"
+nohup cloudflared tunnel run \
+     --no-autoupdate \
+     --token "${CF_TUNNEL_TOKEN}" \
+     --url   "http://localhost:${PORT}" \
   > /tmp/cloudflared.log 2>&1 &
 
 sleep 2
