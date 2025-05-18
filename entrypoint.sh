@@ -21,8 +21,8 @@ nohup cloudflared tunnel run \
 sleep 1
 
 # 1.2) Показываем последние 20 строк лога cloudflared для отладки
-echo "[entrypoint] Последние 20 строк лога cloudflared:"
-tail -n 20 /tmp/cloudflared.log || true
+echo "[entrypoint] Последние 40 строк лога cloudflared:"
+tail -n 40 /tmp/cloudflared.log || true
 
 # 2) Публикуем URL из панели Cloudflare
 CF_URL="https://${CF_HOSTNAME}"
