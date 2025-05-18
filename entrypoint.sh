@@ -10,13 +10,12 @@ PORT="${PORT:-8000}"
 WORKERS="${WORKERS:-1}"
 
 # 1) Старт Cloudflare Tunnel (через токен, без явного --hostname)
-echo "[entrypoint] Старт cloudflared с токеном туннеля → localhost:${PORT}"
-nohup cloudflared tunnel run \
-  --no-autoupdate \
+echo "[entrypoint] Старт cloudflared Quick Tunnel"
+nohup cloudflared tunnel \
   --token "${CF_TUNNEL_TOKEN}" \
+  --no-autoupdate \
   --url "http://localhost:${PORT}" \
   > /tmp/cloudflared.log 2>&1 &
-
 # 1.1) Даем несколько секунд на инициализацию
 sleep 2
 
