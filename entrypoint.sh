@@ -11,8 +11,7 @@ WORKERS="${WORKERS:-1}"
 
 # 1) Старт Cloudflare Tunnel (через токен, без явного --hostname)
 echo "[entrypoint] Старт cloudflared Quick Tunnel"
-nohup cloudflared tunnel \
-  --token "${CF_TUNNEL_TOKEN}" \
+nohup cloudflared tunnel run LLM_RUNPOD\
   --no-autoupdate \
   --url "http://localhost:${PORT}" \
   > /tmp/cloudflared.log 2>&1 &
