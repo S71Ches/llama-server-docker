@@ -10,21 +10,26 @@ PORT="${PORT:-8000}"
 WORKERS="${WORKERS:-1}"
 
 # 1) Старт Cloudflare Tunnel (через токен, без явного --hostname)
-echo "[entrypoint] Старт cloudflared с токеном туннеля"
+echo "[entrypoint] Старт cloudflared с токеном туннеля → localhost:${PORT}"
 nohup cloudflared tunnel run \
   --no-autoupdate \
   --token "${CF_TUNNEL_TOKEN}" \
+  --url "http://localhost:${PORT}" \
   > /tmp/cloudflared.log 2>&1 &
 
-  
-# даём пару секунд, чтобы cloudflared успел инициализироваться
+# 1.1) Даем несколько секунд на инициализацию
 sleep 2
 
-# 1.1) Для отладки сразу смотрим, что внутри лога:
+# 1.2) Для отладки: выводим последние строки лога cloudflared
 echo "[entrypoint] Последние строки лога cloudflared:"
 tail -n 20 /tmp/cloudflared.log || true
 
-# 2) Логический URL (из панели Cloudflare)
+# 1.3) Выводим help по команде tunnel run
+echo "[entrypoint] Вывод cloudflared tunnel run --help:"
+cloudflared tunnel run --help > /tmp/cloudflared-help.log 2>&1 || true
+tail -n 30 /tmp/cloudflared-help.log || true
+
+# 2) Собираем публичный URL
 CF_URL="https://${CF_HOSTNAME}"
 echo "[entrypoint] Tunnel URL (как в панели): ${CF_URL}"
 echo "[entrypoint] Модель доступна по: ${CF_URL}/v1/chat/completions"
@@ -40,7 +45,7 @@ echo "[entrypoint] Модель найдена: $MODEL_SRC"
 cp "$MODEL_SRC" /models/model.gguf
 echo "✅ Модель скопирована в /models/model.gguf"
 
-# 4) Запускаем FastAPI
+# 4) Запускаем FastAPI/Uvicorn
 echo "[entrypoint] Запускаем uvicorn на порту ${PORT}…"
 exec uvicorn server:app \
      --host 0.0.0.0 \
