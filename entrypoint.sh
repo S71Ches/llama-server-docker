@@ -12,12 +12,11 @@ WORKERS="${WORKERS:-1}"
 # 1) Старт Cloudflare Tunnel (через токен, без явного --hostname)
 echo "[entrypoint] Старт cloudflared с токеном туннеля"
 nohup cloudflared tunnel run \
-    cloudflared tunnel run \
   --no-autoupdate \
   --token "${CF_TUNNEL_TOKEN}" \
   > /tmp/cloudflared.log 2>&1 &
 
-
+  
 # даём пару секунд, чтобы cloudflared успел инициализироваться
 sleep 2
 
