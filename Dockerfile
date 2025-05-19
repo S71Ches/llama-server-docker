@@ -34,6 +34,8 @@ RUN pip3 install --no-cache-dir \
 RUN mkdir -p /models
 COPY server.py /app/server.py
 COPY entrypoint.sh /entrypoint.sh
+COPY ./cloudflared/credentials.json  /etc/cloudflared/credentials.json
+COPY ./cloudflared/config.yaml      /etc/cloudflared/config.yaml
 RUN chmod +x /entrypoint.sh
 
 # 6) Экспортируем порт из аргумента и стартуем entrypoint
