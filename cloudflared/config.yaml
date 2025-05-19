@@ -1,7 +1,7 @@
 # ~/.cloudflared/config.yaml
 
 tunnel: be2f132d-1586-43ab-ac90-70dd6856e7cf   # ваш Tunnel ID
-credentials-file: /home/username/.cloudflared/be2f132d-1586-43ab-ac90-70dd6856e7cf.json
+credentials-file: /root/.cloudflared/credentials.json
 
 ingress:
   - hostname: uncensoredone.chipillm.uk
