@@ -10,10 +10,11 @@ PORT="${PORT:-8000}"
 WORKERS="${WORKERS:-1}"
 
 # 1) Старт Quick Tunnel по токену
-echo "[entrypoint] Старт cloudflared Quick Tunnel"
-nohup cloudflared tunnel run \
-  --token "${CF_TUNNEL_TOKEN}" \
+echo "[entrypoint] Старт cloudflared (config-mode)…"
+nohup cloudflared tunnel run LLM_RUNPOD \
+  --config /home/user/.cloudflared/config.yaml \
   > /tmp/cloudflared.log 2>&1 &
+
 # 1.1) Даем 2 секунды на инициализацию
 
 # 1.2) Показываем последние 20 строк лога cloudflared для отладки
