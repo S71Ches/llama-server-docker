@@ -30,12 +30,13 @@ WORKDIR /app
 RUN pip3 install --no-cache-dir \
       llama-cpp-python fastapi uvicorn[standard] requests
 
+
 # 5) Копируем точку входа и заготовки для модели
 RUN mkdir -p /models
-COPY server.py /app/server.py
-COPY entrypoint.sh /entrypoint.sh
 COPY ./cloudflared/credentials.json  /etc/cloudflared/credentials.json
 COPY ./cloudflared/config.yaml      /etc/cloudflared/config.yaml
+COPY server.py /app/server.py
+COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # 6) Экспортируем порт из аргумента и стартуем entrypoint
