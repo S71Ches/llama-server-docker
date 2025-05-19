@@ -13,7 +13,6 @@ WORKERS="${WORKERS:-1}"
 echo "[entrypoint] Старт cloudflared Quick Tunnel"
 nohup cloudflared tunnel run \
   --token "${CF_TUNNEL_TOKEN}" \
-  --url "http://localhost:${PORT}" \
   > /tmp/cloudflared.log 2>&1 &
 # 1.1) Даем 2 секунды на инициализацию
 
