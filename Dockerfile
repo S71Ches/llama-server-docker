@@ -31,7 +31,7 @@ RUN pip3 install --no-cache-dir \
       llama-cpp-python fastapi uvicorn[standard] requests
 
 
-# 5) Копируем точку входа и заготовки для модели
+# 5) Копируем точку входа и заготовки под модели
 RUN mkdir -p /root/.cloudflaered/models
 COPY ./cloudflared/credentials.json  /root/.cloudflared/credentials.json
 COPY ./cloudflared/config.yaml      /root/.cloudflared/config.yaml
