@@ -1,0 +1,11 @@
+# ~/.cloudflared/config.yaml
+
+tunnel: 1524ea5f-3a20-4d4f-a4bc-8ac8e8c1dba9   # ваш Tunnel ID
+credentials-file: /home/username/.cloudflared/1524ea5f-3a20-4d4f-a4bc-8ac8e8c1dba9.json
+
+ingress:
+  - hostname: uncensoredone.chipillm.uk
+    service: http://localhost:8001     # тот же порт FastAPI/Uvicorn
+
+  # catch-all на 404, чтобы всё остальное не "провалилось"
+  - service: http_status:404
