@@ -12,10 +12,9 @@ WORKERS="${WORKERS:-1}"
 # 1) Старт Quick Tunnel по токену
 echo "[entrypoint] Старт cloudflared Quick Tunnel"
 nohup cloudflared tunnel run \
-     --no-autoupdate \
-     --token "${CF_TUNNEL_TOKEN}" \
+  --token "${CF_TUNNEL_TOKEN}" \
+  --url "http://localhost:${PORT}" \
   > /tmp/cloudflared.log 2>&1 &
-
 # 1.1) Даем 2 секунды на инициализацию
 
 # 1.2) Показываем последние 20 строк лога cloudflared для отладки
