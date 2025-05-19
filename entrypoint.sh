@@ -11,13 +11,10 @@ WORKERS="${WORKERS:-1}"
 
 # 1) Старт Quick Tunnel по токену
 echo "[entrypoint] Старт cloudflared (config-mode)…"
-nohup cloudflared tunnel run LLM_RUNPOD \
-  --config /home/user/.cloudflared/config.yaml \
+nohup cloudflared tunnel --config /home/user/.cloudflared/config.yaml run \
   > /tmp/cloudflared.log 2>&1 &
 
-# 1.1) Даем 2 секунды на инициализацию
-
-# 1.2) Показываем последние 20 строк лога cloudflared для отладки
+# 1.1) Показываем логи cloudflared для отладки
 echo "[entrypoint] логи cloudflared:"
 tail -f /tmp/cloudflared.log
 
