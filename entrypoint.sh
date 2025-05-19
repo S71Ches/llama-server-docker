@@ -17,7 +17,6 @@ nohup cloudflared tunnel run \
   > /tmp/cloudflared.log 2>&1 &
 
 # 1.1) Даем 2 секунды на инициализацию
-sleep 2
 
 # 1.2) Показываем последние 20 строк лога cloudflared для отладки
 echo "[entrypoint] логи cloudflared:"
