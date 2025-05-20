@@ -4,7 +4,6 @@ set -eo pipefail
 echo "[entrypoint] Запуск entrypoint.sh…"
 
 # 0) Проверяем обязательные переменные
-: "${CF_TUNNEL_TOKEN:?ERROR: нужно задать CF_TUNNEL_TOKEN}"
 : "${CF_HOSTNAME:?ERROR: нужно задать CF_HOSTNAME (например your.subdomain.chipillm.uk)}"
 PORT="${PORT:-8001}"
 WORKERS="${WORKERS:-1}"
