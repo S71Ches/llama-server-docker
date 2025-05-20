@@ -3,6 +3,8 @@
 tunnel: be2f132d-1586-43ab-ac90-70dd6856e7cf   # ваш Tunnel ID
 credentials-file: /root/.cloudflared/credentials.json
 
+protocol: http2
+
 ingress:
   - hostname: uncensoredone.chipillm.uk
     service: http://localhost:8001     # тот же порт FastAPI/Uvicorn
