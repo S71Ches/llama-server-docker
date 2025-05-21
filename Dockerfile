@@ -32,9 +32,7 @@ RUN pip3 install --no-cache-dir \
 
 
 # 5) Копируем точку входа и заготовки под модели
-RUN mkdir -p /root/.cloudflaered/models
-COPY ./cloudflared/credentials.json  /root/.cloudflared/credentials.json
-COPY ./cloudflared/config.yaml      /root/.cloudflared/config.yaml
+RUN mkdir -p /models
 COPY server.py /app/server.py
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
