@@ -31,7 +31,7 @@ RUN pip3 install --no-cache-dir \
       llama-cpp-python fastapi uvicorn[standard] requests
 
 
-# 5) Копируем точку входа и заготовки под модели
+# 5) Копируем точку входа и заготовка под модель
 RUN mkdir -p /models
 COPY server.py /app/server.py
 COPY entrypoint.sh /entrypoint.sh
