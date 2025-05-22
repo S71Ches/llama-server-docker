@@ -15,7 +15,7 @@ nohup cloudflared tunnel --config /workspace/.cloudflared/config.yaml run \
 
 # 1.1) Показываем логи cloudflared для отладки
 echo "[entrypoint] логи cloudflared:"
-tail -f /tmp/cloudflared.log
+tail -n 100 /tmp/cloudflared.log || true
 
 # 2) Публикуем URL из панели Cloudflare
 CF_URL="https://${CF_HOSTNAME}"
