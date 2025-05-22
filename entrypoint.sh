@@ -13,6 +13,8 @@ echo "[entrypoint] Старт cloudflared (config-mode)…"
 nohup cloudflared tunnel --config /workspace/.cloudflared/config.yaml run \
   > /tmp/cloudflared.log 2>&1 &
 
+sleep 3
+
 # 1.1) Показываем логи cloudflared для отладки
 echo "[entrypoint] логи cloudflared:"
 tail -n 100 /tmp/cloudflared.log || true
