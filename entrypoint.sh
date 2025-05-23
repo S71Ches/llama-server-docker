@@ -10,7 +10,7 @@ WORKERS="${WORKERS:-1}"
 
 # 1) Старт cloudflared в фоне (config-mode)
 echo "[entrypoint] Старт cloudflared (config-mode)…"
-cloudflared tunnel --config /workspace/.cloudflared/config.yaml run \
+cloudflared tunnel --cred-file /workspace/.cloudflared/credentials.json run LLM_RUNPOD \
   > /tmp/cloudflared.log 2>&1 &
 
 sleep 3
