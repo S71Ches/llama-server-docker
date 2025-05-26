@@ -1,53 +1,23 @@
 import os
-import time
-import threading
-import requests
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from pydantic import BaseModel
 from llama_cpp import Llama
 
 app = FastAPI()
 
-# 1) Загружаем модель
-llm = Llama(model_path="/models/model.gguf")
+# 1) Загружаем модель с GPU
+llm = Llama(
+    model_path="/models/model.gguf",
+    n_gpu_layers=64,
+    f16_kv=True
+)
 
-# 2) Таймаут простоя в минутах
-INACTIVITY_MIN = int(os.getenv("INACTIVITY_MIN", "5"))
-INACTIVITY_THRESHOLD = INACTIVITY_MIN * 60
-
-# 3) Под управлением RunPod: ID и ключ
-RUNPOD_POD_ID = os.getenv("RUNPOD_POD_ID")
-RUNPOD_API_KEY = os.getenv("RUNPOD_API_KEY")
-if not RUNPOD_POD_ID or not RUNPOD_API_KEY:
-    raise RuntimeError("Не заданы RUNPOD_POD_ID или RUNPOD_API_KEY")
-
-# 4) Точка учёта последней активности
-last_activity = time.time()
-
-# 5) Middleware — обновляем таймер при каждом запросе
-@app.middleware("http")
-async def update_last_activity(request: Request, call_next):
-    global last_activity
-    last_activity = time.time()
-    return await call_next(request)
-
-# 6) Фон. поток — выключаем Pod при простое
-def inactivity_watcher():
-    headers = {"Authorization": f"Bearer {RUNPOD_API_KEY}"}
-    while True:
-        if time.time() - last_activity > INACTIVITY_THRESHOLD:
-            requests.post(f"https://api.runpod.io/v2/pods/{RUNPOD_POD_ID}/stop", headers=headers)
-            break
-        time.sleep(60)
-
-threading.Thread(target=inactivity_watcher, daemon=True).start()
-
-# 7) Health-check
+# 2) Health-check
 @app.get("/")
 def root():
     return {"message": "Модель загружена и готова!"}
 
-# 8) Основной чат-эндпоинт
+# 3) Чат
 class ChatRequest(BaseModel):
     messages: list[dict]
 
