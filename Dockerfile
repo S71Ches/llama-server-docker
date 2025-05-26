@@ -26,6 +26,9 @@ COPY llama.cpp ./
 RUN cmake -B build -DGGM_CUDA=ON -DLLAMA_CURL=ON . && \
     cmake --build build --parallel 2
 
+# 3.1) Устанавливаем Python-обвязку из этой директории
+RUN pip install --no-cache-dir /app/llama.cpp
+
 # 4) Устанавливаем Python-обвязку llama-cpp из этой же папки
 RUN pip3 install --no-cache-dir .
 
