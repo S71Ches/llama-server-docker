@@ -36,6 +36,9 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 RUN pip3 install --no-cache-dir fastapi uvicorn[standard] requests
 
+# 5.1) Создаём директорию под модель
+RUN mkdir -p /models
+
 # 6) Экспортируем порт и запускаем
 EXPOSE ${PORT}
 ENTRYPOINT ["/entrypoint.sh"]
