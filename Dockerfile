@@ -21,25 +21,22 @@ RUN wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/c
 
 # 3) Собираем llama.cpp с поддержкой CUDA
 WORKDIR /app/llama.cpp
-# вся директория с исходниками llama.cpp
 COPY llama.cpp ./  
 RUN cmake -B build -DGGM_CUDA=ON -DLLAMA_CURL=ON . && \
     cmake --build build --parallel 2
 
-# 3.1) Устанавливаем Python-обвязку из этой директории
-RUN pip install --no-cache-dir /app/llama.cpp
+# 3.1) Устанавливаем Python-обвязку llama_cpp
+COPY llama-cpp-python-main /app/llama-cpp-python
+RUN pip install /app/llama-cpp-python
 
-# 4) Устанавливаем Python-обвязку llama-cpp из этой же папки
-RUN pip3 install --no-cache-dir .
-
-# 5) Установка Python-зависимостей
+# 4) Установка Python-зависимостей
 WORKDIR /app
 COPY server.py /app/server.py
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 RUN pip3 install --no-cache-dir fastapi uvicorn[standard] requests
 
-# 5.1) Создаём директорию под модель
+# 5) Создаём директорию под модель
 RUN mkdir -p /models
 
 # 6) Экспортируем порт и запускаем
