@@ -1,4 +1,4 @@
-# 0) Базовый образ и параметры сборки
+# 0) Базовый образ
 FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
 
 ARG PORT=8000
@@ -14,29 +14,27 @@ RUN apt-get update && \
       libopenblas-dev libssl-dev zlib1g-dev libcurl4-openssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# 2) Установим cloudflared (Cloudflare Tunnel client)
+# 2) Cloudflared
 RUN wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 && \
     mv cloudflared-linux-amd64 /usr/local/bin/cloudflared && \
     chmod +x /usr/local/bin/cloudflared
 
-# 3) Собираем llama-server (C++ сервер)
+# 3) Собираем llama.cpp с поддержкой CUDA
 WORKDIR /app/llama.cpp
-COPY llama.cpp ./
-RUN cmake -B build -DGGM_CUDA=ON -DLLAMA_CURL=ON . \
- && cmake --build build --parallel 2 --target llama-server
+COPY llama.cpp ./  # вся директория с исходниками llama.cpp
+RUN cmake -B build -DGGM_CUDA=ON -DLLAMA_CURL=ON . && \
+    cmake --build build --parallel 2
 
-# 4) Python-окружение
+# 4) Устанавливаем Python-обвязку llama-cpp из этой же папки
+RUN pip3 install --no-cache-dir .
+
+# 5) Установка Python-зависимостей
 WORKDIR /app
-RUN pip3 install --no-cache-dir \
-      llama-cpp-python fastapi uvicorn[standard] requests
-
-
-# 5) Копируем точку входа и заготовка под модель
-RUN mkdir -p /models
 COPY server.py /app/server.py
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+RUN pip3 install --no-cache-dir fastapi uvicorn[standard] requests
 
-# 6) Экспортируем порт из аргумента и стартуем entrypoint
+# 6) Экспортируем порт и запускаем
 EXPOSE ${PORT}
 ENTRYPOINT ["/entrypoint.sh"]
