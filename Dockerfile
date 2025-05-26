@@ -1,18 +1,17 @@
 # 0) Базовый образ
 FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
 
-ARG PORT=8000
-ARG WORKERS=1
-ENV PORT=${PORT}
-ENV WORKERS=${WORKERS}
+ARG PORT=8000 WORKERS=1
+ENV PORT=${PORT} WORKERS=${WORKERS}
 
-# 1) Системные зависимости
+# 1) Системные зависимости + апгрейд pip
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
       build-essential git cmake ninja-build wget curl unzip \
       python3 python3-pip python3-dev \
-      libopenblas-dev libssl-dev zlib1g-dev libcurl4-openssl-dev \
-    && rm -rf /var/lib/apt/lists/*
+      libopenblas-dev libssl-dev zlib1g-dev libcurl4-openssl-dev && \
+    rm -rf /var/lib/apt/lists/* && \
+    python3 -m pip install --upgrade pip
 
 # 2) Cloudflared
 RUN wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 && \
@@ -21,24 +20,21 @@ RUN wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/c
 
 # 3) Собираем llama.cpp с поддержкой CUDA
 WORKDIR /app/llama.cpp
-COPY llama.cpp ./  
+COPY llama.cpp ./
 RUN cmake -B build -DGGM_CUDA=ON -DLLAMA_CURL=ON . && \
     cmake --build build --parallel 2
 
-# 3.1) Устанавливаем Python-обвязку llama_cpp
-COPY llama-cpp-python-main /app/llama-cpp-python
-RUN pip install /app/llama-cpp-python
-
-# 4) Установка Python-зависимостей
+# 4) Устанавливаем Python-модуль llama_cpp (с CUDA) и все остальные зависимости
 WORKDIR /app
-COPY server.py /app/server.py
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-RUN pip3 install --no-cache-dir fastapi uvicorn[standard] requests
+RUN pip install --no-cache-dir "llama-cpp-python[cuda]" fastapi uvicorn[standard] requests
 
-# 5) Создаём директорию под модель
+# 5) Копируем код и точку входа
+COPY server.py entrypoint.sh ./
+RUN chmod +x entrypoint.sh
+
+# 6) Папка для модели
 RUN mkdir -p /models
 
-# 6) Экспортируем порт и запускаем
+# 7) Экспорт порта и запуск
 EXPOSE ${PORT}
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["./entrypoint.sh"]
