@@ -21,7 +21,8 @@ RUN wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/c
 
 # 3) Собираем llama.cpp с поддержкой CUDA
 WORKDIR /app/llama.cpp
-COPY llama.cpp ./  # вся директория с исходниками llama.cpp
+# вся директория с исходниками llama.cpp
+COPY llama.cpp ./  
 RUN cmake -B build -DGGM_CUDA=ON -DLLAMA_CURL=ON . && \
     cmake --build build --parallel 2
 
