@@ -1,4 +1,4 @@
-# 0) Базовый образ
+# 0) Базовый образ с CUDA
 FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
 
 ARG PORT=8000 WORKERS=1
@@ -13,35 +13,40 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* && \
     python3 -m pip install --upgrade pip
 
-# 2) Cloudflared
+# 2) Cloudflared для туннеля
 RUN wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 && \
     mv cloudflared-linux-amd64 /usr/local/bin/cloudflared && \
     chmod +x /usr/local/bin/cloudflared
 
-# 3) Сборка и установка llama-cpp-python с поддержкой CUDA
+# 3) Копируем Python-модуль llama-cpp-python с вложенным llama.cpp
 WORKDIR /app
 COPY llama-cpp-python-main ./llama-cpp-python
 
-# 3a) Собираем C++-движок с CUDA
+# 3a) Собираем C++-движок с поддержкой CUDA, отключая тесты, примеры и инструменты
 WORKDIR /app/llama-cpp-python/vendor/llama.cpp
-RUN cmake -B build -DGGML_CUDA=on . && \
-    cmake --build build --parallel 2
+RUN cmake -B build \
+        -DGGML_CUDA=ON \
+        -DLLAMA_BUILD_TESTS=OFF \
+        -DLLAMA_BUILD_EXAMPLES=OFF \
+        -DLLAMA_BUILD_TOOLS=OFF \
+        . && \
+    cmake --build build --target llama --parallel 2
 
-# 3b) Устанавливаем Python-модуль, связанный с уже собранным C++
+# 3b) Устанавливаем Python-модуль, использующий уже собранный C++
 WORKDIR /app/llama-cpp-python
 RUN FORCE_CMAKE=1 pip install . --no-cache-dir
 
-# 4) Устанавливаем остальные зависимости
+# 4) Устанавливаем остальные зависимости приложения
 WORKDIR /app
 RUN pip install --no-cache-dir fastapi uvicorn[standard] requests
 
-# 5) Копируем код приложения и точку входа
+# 5) Копируем код сервера и точку входа
 COPY server.py entrypoint.sh ./
 RUN chmod +x entrypoint.sh
 
 # 6) Папка для модели
 RUN mkdir -p /models
 
-# 7) Порт и запуск
+# 7) Экспорт порта и запуск
 EXPOSE ${PORT}
 ENTRYPOINT ["./entrypoint.sh"]
