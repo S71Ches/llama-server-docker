@@ -4,6 +4,12 @@ FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
 ARG PORT=8000 WORKERS=1
 ENV PORT=${PORT} WORKERS=${WORKERS}
 
+# 1.0) Включаем репозиторий universe
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends software-properties-common && \
+    add-apt-repository universe && \
+    rm -rf /var/lib/apt/lists/*
+
 # 1) Системные зависимости  +  апгрейд pip
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
