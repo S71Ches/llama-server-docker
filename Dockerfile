@@ -4,7 +4,7 @@ FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
 ARG PORT=8000 WORKERS=1
 ENV PORT=${PORT} WORKERS=${WORKERS}
 
-# 1) Системные зависимости + апгрейд pip
+# 1) Системные зависимости  +  апгрейд pip
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
       build-essential git cmake ninja-build wget curl unzip \
