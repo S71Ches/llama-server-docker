@@ -18,15 +18,13 @@ RUN wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/c
     mv cloudflared-linux-amd64 /usr/local/bin/cloudflared && \
     chmod +x /usr/local/bin/cloudflared
 
-# 3) Собираем llama.cpp с поддержкой CUDA
-WORKDIR /app/llama.cpp
-COPY llama.cpp ./
-RUN cmake -B build -DGGM_CUDA=ON -DLLAMA_CURL=ON . && \
-    cmake --build build --parallel 2
-
-# 4) Устанавливаем Python-модуль llama_cpp (с CUDA) и все остальные зависимости
+# 3) Копируем Python-модуль llama-cpp-python с вложенным llama.cpp
 WORKDIR /app
-RUN pip install --no-cache-dir "llama-cpp-python[cuda]" fastapi uvicorn[standard] requests
+COPY llama-cpp-python-main ./llama-cpp-python
+RUN LLAMA_CUBLAS=1 pip install ./llama-cpp-python
+
+# 4) Устанавливаем остальное
+RUN pip install --no-cache-dir fastapi uvicorn[standard] requests
 
 # 5) Копируем код и точку входа
 COPY server.py entrypoint.sh ./
