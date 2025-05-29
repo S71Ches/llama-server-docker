@@ -109,8 +109,6 @@ if (MSVC)
 else ()
     set(CMAKE_GENERATOR_PLATFORM_LWR "")
 endif ()
-ggml_get_system_arch()
-message(STATUS "GGML_SYSTEM_ARCH: ${GGML_SYSTEM_ARCH}")
 
 if (NOT MSVC)
     if (GGML_STATIC)

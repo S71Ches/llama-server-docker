@@ -4,8 +4,6 @@
 
 #include <cstdint>
 
-#define LLAMA_MAX_PARALLEL_SEQUENCES 64
-
 struct llama_cparams {
     uint32_t n_ctx;           // context size used during inference
     uint32_t n_batch;
@@ -32,7 +30,6 @@ struct llama_cparams {
     bool flash_attn;
     bool no_perf;
     bool warmup;
-    bool op_offload;
 
     enum llama_pooling_type pooling_type;
 

@@ -1,11 +1,6 @@
 // @ts-expect-error this package does not have typing
 import TextLineStream from 'textlinestream';
-import {
-  APIMessage,
-  APIMessageContentPart,
-  LlamaCppServerProps,
-  Message,
-} from './types';
+import { APIMessage, Message } from './types';
 
 // ponyfill for missing ReadableStream asyncIterator on Safari
 import { asyncIterator } from '@sec-ant/readable-stream/ponyfill/asyncIterator';
@@ -62,55 +57,19 @@ export const copyStr = (textToCopy: string) => {
  */
 export function normalizeMsgsForAPI(messages: Readonly<Message[]>) {
   return messages.map((msg) => {
-    if (msg.role !== 'user' || !msg.extra) {
-      return {
-        role: msg.role,
-        content: msg.content,
-      } as APIMessage;
-    }
-
-    // extra content first, then user text message in the end
-    // this allow re-using the same cache prefix for long context
-    const contentArr: APIMessageContentPart[] = [];
+    let newContent = '';
 
     for (const extra of msg.extra ?? []) {
       if (extra.type === 'context') {
-        contentArr.push({
-          type: 'text',
-          text: extra.content,
-        });
-      } else if (extra.type === 'textFile') {
-        contentArr.push({
-          type: 'text',
-          text: `File: ${extra.name}\nContent:\n\n${extra.content}`,
-        });
-      } else if (extra.type === 'imageFile') {
-        contentArr.push({
-          type: 'image_url',
-          image_url: { url: extra.base64Url },
-        });
-      } else if (extra.type === 'audioFile') {
-        contentArr.push({
-          type: 'input_audio',
-          input_audio: {
-            data: extra.base64Data,
-            format: /wav/.test(extra.mimeType) ? 'wav' : 'mp3',
-          },
-        });
-      } else {
-        throw new Error('Unknown extra type');
+        newContent += `${extra.content}\n\n`;
       }
     }
 
-    // add user message to the end
-    contentArr.push({
-      type: 'text',
-      text: msg.content,
-    });
+    newContent += msg.content;
 
     return {
       role: msg.role,
-      content: contentArr,
+      content: newContent,
     };
   }) as APIMessage[];
 }
@@ -119,19 +78,13 @@ export function normalizeMsgsForAPI(messages: Readonly<Message[]>) {
  * recommended for DeepsSeek-R1, filter out content between <think> and </think> tags
  */
 export function filterThoughtFromMsgs(messages: APIMessage[]) {
-  console.debug({ messages });
   return messages.map((msg) => {
-    if (msg.role !== 'assistant') {
-      return msg;
-    }
-    // assistant message is always a string
-    const contentStr = msg.content as string;
     return {
       role: msg.role,
       content:
         msg.role === 'assistant'
-          ? contentStr.split('</think>').at(-1)!.trim()
-          : contentStr,
+          ? msg.content.split('</think>').at(-1)!.trim()
+          : msg.content,
     } as APIMessage;
   });
 }
@@ -172,26 +125,4 @@ export const cleanCurrentUrl = (removeQueryParams: string[]) => {
     url.searchParams.delete(param);
   });
   window.history.replaceState({}, '', url.toString());
-};
-
-export const getServerProps = async (
-  baseUrl: string,
-  apiKey?: string
-): Promise<LlamaCppServerProps> => {
-  try {
-    const response = await fetch(`${baseUrl}/props`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
-      },
-    });
-    if (!response.ok) {
-      throw new Error('Failed to fetch server props');
-    }
-    const data = await response.json();
-    return data as LlamaCppServerProps;
-  } catch (error) {
-    console.error('Error fetching server props:', error);
-    throw error;
-  }
 };

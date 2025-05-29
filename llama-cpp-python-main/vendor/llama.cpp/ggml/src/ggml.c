@@ -64,17 +64,12 @@
 // precomputed f32 table for f16 (256 KB) (ggml-impl.h)
 float ggml_table_f32_f16[1 << 16];
 
-#if defined(__linux__) || \
-    defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || \
-    (defined(__APPLE__) && !TARGET_OS_TV && !TARGET_OS_WATCH)
-
+#if (defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)) && \
+    (!defined(TARGET_OS_TV) && !defined(TARGET_OS_WATCH))
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
-#if defined(__linux__)
-#include <sys/prctl.h>
-#endif
 
 #if defined(__ANDROID__)
 #include <unwind.h>
@@ -138,36 +133,10 @@ static void ggml_print_backtrace(void) {
     if (GGML_NO_BACKTRACE) {
         return;
     }
-#if defined(__linux__)
-    FILE * f = fopen("/proc/self/status", "r");
-    size_t size = 0;
-    char * line = NULL;
-    ssize_t length = 0;
-    while ((length = getline(&line, &size, f)) > 0) {
-        if (!strncmp(line, "TracerPid:", sizeof("TracerPid:") - 1) &&
-            (length != sizeof("TracerPid:\t0\n") - 1 || line[length - 2] != '0')) {
-            // Already being debugged, and the breakpoint is the later abort()
-            free(line);
-            fclose(f);
-            return;
-        }
-    }
-    free(line);
-    fclose(f);
-    int lock[2] = { -1, -1 };
-    (void) !pipe(lock); // Don't start gdb until after PR_SET_PTRACER
-#endif
-    const int parent_pid = getpid();
-    const int child_pid = fork();
-    if (child_pid < 0) { // error
-        return;
-    } else if (child_pid == 0) { // child
-        char attach[32];
-        snprintf(attach, sizeof(attach), "attach %d", parent_pid);
-#if defined(__linux__)
-        close(lock[1]);
-        (void) !read(lock[0], lock, 1);
-#endif
+    char attach[32];
+    snprintf(attach, sizeof(attach), "attach %d", getpid());
+    int pid = fork();
+    if (pid == 0) {
         // try gdb
         execlp("gdb", "gdb", "--batch",
             "-ex", "set style enabled on",
@@ -180,18 +149,18 @@ static void ggml_print_backtrace(void) {
         execlp("lldb", "lldb", "--batch",
             "-o", "bt",
             "-o", "quit",
-            "-p", &attach[sizeof("attach ") - 1],
+            "-p", attach,
             (char *) NULL);
-        // gdb failed, fallback to backtrace_symbols
-        ggml_print_backtrace_symbols();
-        _Exit(0);
-    } else { // parent
-#if defined(__linux__)
-        prctl(PR_SET_PTRACER, child_pid);
-        close(lock[1]);
-        close(lock[0]);
-#endif
-        waitpid(child_pid, NULL, 0);
+        exit(EXIT_FAILURE);
+    } else {
+        int wstatus;
+        waitpid(pid, &wstatus, 0);
+        if (WIFEXITED(wstatus)) {
+            if (WEXITSTATUS(wstatus) == EXIT_FAILURE) {
+                // gdb failed, fallback to backtrace_symbols
+                ggml_print_backtrace_symbols();
+            }
+        }
     }
 }
 #else
@@ -1099,10 +1068,9 @@ static const char * GGML_UNARY_OP_NAME[GGML_UNARY_OP_COUNT] = {
     "HARDSWISH",
     "HARDSIGMOID",
     "EXP",
-    "GELU_ERF",
 };
 
-static_assert(GGML_UNARY_OP_COUNT == 15, "GGML_UNARY_OP_COUNT != 15");
+static_assert(GGML_UNARY_OP_COUNT == 14, "GGML_UNARY_OP_COUNT != 14");
 
 
 static_assert(sizeof(struct ggml_object)%GGML_MEM_ALIGN == 0, "ggml_object size must be a multiple of GGML_MEM_ALIGN");
@@ -2312,26 +2280,6 @@ struct ggml_tensor * ggml_repeat(
     return result;
 }
 
-struct ggml_tensor * ggml_repeat_4d(
-        struct ggml_context * ctx,
-        struct ggml_tensor * a,
-        int64_t ne0, int64_t ne1, int64_t ne2, int64_t ne3) {
-    const bool can_repeat = ggml_is_empty(a) || (
-        (ne0 % a->ne[0] == 0) &&
-        (ne1 % a->ne[1] == 0) &&
-        (ne2 % a->ne[2] == 0) &&
-        (ne3 % a->ne[3] == 0)
-    );
-    GGML_ASSERT(can_repeat);
-
-    struct ggml_tensor * result = ggml_new_tensor_4d(ctx, a->type, ne0, ne1, ne2, ne3);
-
-    result->op     = GGML_OP_REPEAT;
-    result->src[0] = a;
-
-    return result;
-}
-
 // ggml_repeat_back
 
 struct ggml_tensor * ggml_repeat_back(
@@ -2520,20 +2468,6 @@ struct ggml_tensor * ggml_gelu_inplace(
         struct ggml_context * ctx,
         struct ggml_tensor  * a) {
     return ggml_unary_inplace(ctx, a, GGML_UNARY_OP_GELU);
-}
-
-// ggml_gelu_erf
-
-struct ggml_tensor * ggml_gelu_erf(
-        struct ggml_context * ctx,
-        struct ggml_tensor  * a) {
-    return ggml_unary(ctx, a, GGML_UNARY_OP_GELU_ERF);
-}
-
-struct ggml_tensor * ggml_gelu_erf_inplace(
-        struct ggml_context * ctx,
-        struct ggml_tensor  * a) {
-    return ggml_unary_inplace(ctx, a, GGML_UNARY_OP_GELU_ERF);
 }
 
 // ggml_gelu_quick
@@ -2798,11 +2732,11 @@ void ggml_mul_mat_set_prec(
     c = ggml_mul_mat_id(ctx, as, b, ids);
 
     as  -> [cols, rows, n_expert]
+    ids -> [n_experts_used, n_tokens] (i32)
     b   -> [cols, n_expert_used, n_tokens]
-    ids -> [n_expert_used, n_tokens] (i32)
     c   -> [rows, n_expert_used, n_tokens]
 
-    in b, n_expert_used can be broadcasted to match the n_expert_used of ids
+    in b, n_experts_used can be broadcasted to match the n_expert_used of ids
 
     c ~= as[:,:,i] @ b[:,i%r,t], i = ids[e,t] for all e,t in ids
 */
@@ -5565,7 +5499,7 @@ static void ggml_compute_backward(
             // tensor = src0 * 1 + src1 * 0
             if (src0_needs_grads) {
                 // dsrc0 = dtensor * 1
-                ggml_add_or_set(ctx, cgraph, isrc0, ggml_reshape(ctx, grad, src0));
+                ggml_add_or_set(ctx, cgraph, isrc0, grad);
             }
             if (src1_needs_grads) {
                 // dsrc1 = dtensor * 0 -> noop
@@ -5846,9 +5780,10 @@ void ggml_build_forward_expand(struct ggml_cgraph * cgraph, struct ggml_tensor *
 }
 
 void ggml_build_backward_expand(
-        struct ggml_context *  ctx,
-        struct ggml_cgraph  *  cgraph,
-        struct ggml_tensor  ** grad_accs) {
+        struct ggml_context * ctx_static,
+        struct ggml_context * ctx_compute,
+        struct ggml_cgraph  * cgraph,
+        bool                  accumulate) {
     GGML_ASSERT(cgraph->n_nodes > 0);
     GGML_ASSERT(cgraph->grads);
     GGML_ASSERT(cgraph->grad_accs);
@@ -5921,24 +5856,21 @@ void ggml_build_backward_expand(
         GGML_ASSERT(!node->view_src || node->op == GGML_OP_CPY || node->op == GGML_OP_VIEW ||
             node->op == GGML_OP_RESHAPE || node->op == GGML_OP_PERMUTE || node->op == GGML_OP_TRANSPOSE);
 
-        const size_t ihash = ggml_hash_find(&cgraph->visited_hash_set, node);
-        GGML_ASSERT(ihash != GGML_HASHSET_FULL);
-        GGML_ASSERT(ggml_bitset_get(cgraph->visited_hash_set.used, ihash));
-        if (grad_accs && grad_accs[i]) {
-            cgraph->grad_accs[ihash] = grad_accs[i];
-            cgraph->grads[ihash]     = cgraph->grad_accs[ihash];
-        } else if (node->flags & GGML_TENSOR_FLAG_LOSS) {
-            // loss tensors always need a gradient accumulator
-            cgraph->grad_accs[ihash] = ggml_new_tensor(ctx, GGML_TYPE_F32, GGML_MAX_DIMS, node->ne);
-            cgraph->grads[ihash]     = cgraph->grad_accs[ihash];
+        const size_t igrad = ggml_hash_find(&cgraph->visited_hash_set, node);
+        GGML_ASSERT(igrad != GGML_HASHSET_FULL);
+        GGML_ASSERT(ggml_bitset_get(cgraph->visited_hash_set.used, igrad));
+        if ((accumulate && (node->flags & GGML_TENSOR_FLAG_PARAM)) || (node->flags & GGML_TENSOR_FLAG_LOSS)) {
+            cgraph->grad_accs[igrad] = ggml_dup_tensor(ctx_static, node);
+            cgraph->grads[igrad]     = cgraph->grad_accs[igrad];
+            ggml_format_name(cgraph->grad_accs[igrad], "grad acc for %s", node->name);
         }
-        grads_needed[ihash] = true;
+        grads_needed[igrad] = true;
     }
 
     for (int i = n_nodes_f - 1; i >= 0; --i) {
         // inplace operations to add gradients are not created by ggml_compute_backward except for gradient accumulation
         // use allocator to automatically make inplace operations
-        ggml_compute_backward(ctx, cgraph, i, grads_needed);
+        ggml_compute_backward(ctx_compute, cgraph, i, grads_needed);
     }
 
     free(grads_needed);
@@ -6084,8 +6016,8 @@ void ggml_graph_cpy(struct ggml_cgraph * src, struct ggml_cgraph * dst) {
     }
 }
 
-struct ggml_cgraph * ggml_graph_dup(struct ggml_context * ctx, struct ggml_cgraph * cgraph, bool force_grads) {
-    struct ggml_cgraph * result = ggml_new_graph_custom(ctx, cgraph->size, cgraph->grads || force_grads);
+struct ggml_cgraph * ggml_graph_dup(struct ggml_context * ctx, struct ggml_cgraph * cgraph) {
+    struct ggml_cgraph * result = ggml_new_graph_custom(ctx, cgraph->size, cgraph->grads != NULL);
     ggml_graph_cpy(cgraph, result);
     return result;
 }
@@ -6104,9 +6036,6 @@ struct ggml_tensor * ggml_set_zero(struct ggml_tensor * tensor) {
 }
 
 void ggml_graph_reset(struct ggml_cgraph * cgraph) {
-    if (!cgraph) {
-        return;
-    }
     GGML_ASSERT(cgraph->grads != NULL);
 
     for (int i = 0; i < cgraph->n_nodes; i++) {
@@ -6416,8 +6345,8 @@ void ggml_set_output(struct ggml_tensor * tensor) {
     tensor->flags |= GGML_TENSOR_FLAG_OUTPUT;
 }
 
-void ggml_set_param(struct ggml_tensor * tensor) {
-    GGML_ASSERT(tensor->op == GGML_OP_NONE);
+void ggml_set_param(struct ggml_context * ctx, struct ggml_tensor * tensor) {
+    GGML_UNUSED(ctx); // TODO: remove this parameter
     tensor->flags |= GGML_TENSOR_FLAG_PARAM;
 }
 

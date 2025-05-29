@@ -117,16 +117,6 @@ const StorageUtils = {
     return conv;
   },
   /**
-   * update the name of a conversation
-   */
-  async updateConversationName(convId: string, name: string): Promise<void> {
-    await db.conversations.update(convId, {
-      name,
-      lastModified: Date.now(),
-    });
-    dispatchConversationChange(convId);
-  },
-  /**
    * if convId does not exist, throw an error
    */
   async appendMsg(

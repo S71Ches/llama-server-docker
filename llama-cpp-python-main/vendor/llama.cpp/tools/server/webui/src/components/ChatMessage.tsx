@@ -3,14 +3,7 @@ import { useAppContext } from '../utils/app.context';
 import { Message, PendingMessage } from '../utils/types';
 import { classNames } from '../utils/misc';
 import MarkdownDisplay, { CopyButton } from './MarkdownDisplay';
-import {
-  ArrowPathIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  PencilSquareIcon,
-} from '@heroicons/react/24/outline';
-import ChatInputExtraContextItem from './ChatInputExtraContextItem';
-import { BtnWithTooltips } from '../utils/common';
+import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 
 interface SplitMessage {
   content: PendingMessage['content'];
@@ -83,30 +76,19 @@ export default function ChatMessage({
 
   if (!viewingChat) return null;
 
-  const isUser = msg.role === 'user';
-
   return (
-    <div
-      className="group"
-      id={id}
-      role="group"
-      aria-description={`Message from ${msg.role}`}
-    >
+    <div className="group" id={id}>
       <div
         className={classNames({
           chat: true,
-          'chat-start': !isUser,
-          'chat-end': isUser,
+          'chat-start': msg.role !== 'user',
+          'chat-end': msg.role === 'user',
         })}
       >
-        {msg.extra && msg.extra.length > 0 && (
-          <ChatInputExtraContextItem items={msg.extra} clickToShow />
-        )}
-
         <div
           className={classNames({
             'chat-bubble markdown': true,
-            'chat-bubble bg-transparent': !isUser,
+            'chat-bubble-base-300': msg.role !== 'user',
           })}
         >
           {/* textarea for editing message */}
@@ -149,13 +131,61 @@ export default function ChatMessage({
               ) : (
                 <>
                   {/* render message as markdown */}
-                  <div dir="auto" tabIndex={0}>
+                  <div dir="auto">
                     {thought && (
-                      <ThoughtProcess
-                        isThinking={!!isThinking && !!isPending}
-                        content={thought}
-                        open={config.showThoughtInProgress}
-                      />
+                      <details
+                        className="collapse bg-base-200 collapse-arrow mb-4"
+                        open={isThinking && config.showThoughtInProgress}
+                      >
+                        <summary className="collapse-title">
+                          {isPending && isThinking ? (
+                            <span>
+                              <span
+                                v-if="isGenerating"
+                                className="loading loading-spinner loading-md mr-2"
+                                style={{ verticalAlign: 'middle' }}
+                              ></span>
+                              <b>Thinking</b>
+                            </span>
+                          ) : (
+                            <b>Thought Process</b>
+                          )}
+                        </summary>
+                        <div className="collapse-content">
+                          <MarkdownDisplay
+                            content={thought}
+                            isGenerating={isPending}
+                          />
+                        </div>
+                      </details>
+                    )}
+
+                    {msg.extra && msg.extra.length > 0 && (
+                      <details
+                        className={classNames({
+                          'collapse collapse-arrow mb-4 bg-base-200': true,
+                          'bg-opacity-10': msg.role !== 'assistant',
+                        })}
+                      >
+                        <summary className="collapse-title">
+                          Extra content
+                        </summary>
+                        <div className="collapse-content">
+                          {msg.extra.map(
+                            (extra, i) =>
+                              extra.type === 'textFile' ? (
+                                <div key={extra.name}>
+                                  <b>{extra.name}</b>
+                                  <pre>{extra.content}</pre>
+                                </div>
+                              ) : extra.type === 'context' ? (
+                                <div key={i}>
+                                  <pre>{extra.content}</pre>
+                                </div>
+                              ) : null // TODO: support other extra types
+                          )}
+                        </div>
+                      </details>
                     )}
 
                     <MarkdownDisplay
@@ -203,18 +233,13 @@ export default function ChatMessage({
           })}
         >
           {siblingLeafNodeIds && siblingLeafNodeIds.length > 1 && (
-            <div
-              className="flex gap-1 items-center opacity-60 text-sm"
-              role="navigation"
-              aria-description={`Message version ${siblingCurrIdx + 1} of ${siblingLeafNodeIds.length}`}
-            >
+            <div className="flex gap-1 items-center opacity-60 text-sm">
               <button
                 className={classNames({
                   'btn btn-sm btn-ghost p-1': true,
                   'opacity-20': !prevSibling,
                 })}
                 onClick={() => prevSibling && onChangeSibling(prevSibling)}
-                aria-label="Previous message version"
               >
                 <ChevronLeftIcon className="h-4 w-4" />
               </button>
@@ -227,7 +252,6 @@ export default function ChatMessage({
                   'opacity-20': !nextSibling,
                 })}
                 onClick={() => nextSibling && onChangeSibling(nextSibling)}
-                aria-label="Next message version"
               >
                 <ChevronRightIcon className="h-4 w-4" />
               </button>
@@ -235,84 +259,38 @@ export default function ChatMessage({
           )}
           {/* user message */}
           {msg.role === 'user' && (
-            <BtnWithTooltips
-              className="btn-mini w-8 h-8"
+            <button
+              className="badge btn-mini show-on-hover"
               onClick={() => setEditingContent(msg.content)}
               disabled={msg.content === null}
-              tooltipsContent="Edit message"
             >
-              <PencilSquareIcon className="h-4 w-4" />
-            </BtnWithTooltips>
+              ✍️ Edit
+            </button>
           )}
           {/* assistant message */}
           {msg.role === 'assistant' && (
             <>
               {!isPending && (
-                <BtnWithTooltips
-                  className="btn-mini w-8 h-8"
+                <button
+                  className="badge btn-mini show-on-hover mr-2"
                   onClick={() => {
                     if (msg.content !== null) {
                       onRegenerateMessage(msg as Message);
                     }
                   }}
                   disabled={msg.content === null}
-                  tooltipsContent="Regenerate response"
                 >
-                  <ArrowPathIcon className="h-4 w-4" />
-                </BtnWithTooltips>
+                  🔄 Regenerate
+                </button>
               )}
             </>
           )}
-          <CopyButton className="btn-mini w-8 h-8" content={msg.content} />
+          <CopyButton
+            className="badge btn-mini show-on-hover mr-2"
+            content={msg.content}
+          />
         </div>
       )}
-    </div>
-  );
-}
-
-function ThoughtProcess({
-  isThinking,
-  content,
-  open,
-}: {
-  isThinking: boolean;
-  content: string;
-  open: boolean;
-}) {
-  return (
-    <div
-      role="button"
-      aria-label="Toggle thought process display"
-      tabIndex={0}
-      className={classNames({
-        'collapse bg-none': true,
-      })}
-    >
-      <input type="checkbox" defaultChecked={open} />
-      <div className="collapse-title px-0">
-        <div className="btn rounded-xl">
-          {isThinking ? (
-            <span>
-              <span
-                className="loading loading-spinner loading-md mr-2"
-                style={{ verticalAlign: 'middle' }}
-              ></span>
-              Thinking
-            </span>
-          ) : (
-            <>Thought Process</>
-          )}
-        </div>
-      </div>
-      <div
-        className="collapse-content text-base-content/70 text-sm p-1"
-        tabIndex={0}
-        aria-description="Thought process content"
-      >
-        <div className="border-l-2 border-base-content/20 pl-4 mb-4">
-          <MarkdownDisplay content={content} />
-        </div>
-      </div>
     </div>
   );
 }

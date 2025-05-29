@@ -3,7 +3,6 @@ import {
   APIMessage,
   CanvasData,
   Conversation,
-  LlamaCppServerProps,
   Message,
   PendingMessage,
   ViewingChat,
@@ -13,11 +12,9 @@ import {
   filterThoughtFromMsgs,
   normalizeMsgsForAPI,
   getSSEStreamAsync,
-  getServerProps,
 } from './misc';
 import { BASE_URL, CONFIG_DEFAULT, isDev } from '../Config';
 import { matchPath, useLocation, useNavigate } from 'react-router';
-import toast from 'react-hot-toast';
 
 interface AppContextValue {
   // conversations and messages
@@ -49,9 +46,6 @@ interface AppContextValue {
   saveConfig: (config: typeof CONFIG_DEFAULT) => void;
   showSettings: boolean;
   setShowSettings: (show: boolean) => void;
-
-  // props
-  serverProps: LlamaCppServerProps | null;
 }
 
 // this callback is used for scrolling to the bottom of the chat and switching to the last node
@@ -80,9 +74,6 @@ export const AppContextProvider = ({
   const params = matchPath('/chat/:convId', pathname);
   const convId = params?.params?.convId;
 
-  const [serverProps, setServerProps] = useState<LlamaCppServerProps | null>(
-    null
-  );
   const [viewingChat, setViewingChat] = useState<ViewingChat | null>(null);
   const [pendingMessages, setPendingMessages] = useState<
     Record<Conversation['id'], PendingMessage>
@@ -93,20 +84,6 @@ export const AppContextProvider = ({
   const [config, setConfig] = useState(StorageUtils.getConfig());
   const [canvasData, setCanvasData] = useState<CanvasData | null>(null);
   const [showSettings, setShowSettings] = useState(false);
-
-  // get server props
-  useEffect(() => {
-    getServerProps(BASE_URL, config.apiKey)
-      .then((props) => {
-        console.debug('Server props:', props);
-        setServerProps(props);
-      })
-      .catch((err) => {
-        console.error(err);
-        toast.error('Failed to fetch server props');
-      });
-    // eslint-disable-next-line
-  }, []);
 
   // handle change when the convId from URL is changed
   useEffect(() => {
@@ -283,7 +260,7 @@ export const AppContextProvider = ({
       } else {
         console.error(err);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        toast.error((err as any)?.message ?? 'Unknown error');
+        alert((err as any)?.message ?? 'Unknown error');
         throw err; // rethrow
       }
     }
@@ -400,7 +377,6 @@ export const AppContextProvider = ({
         saveConfig,
         showSettings,
         setShowSettings,
-        serverProps,
       }}
     >
       {children}
