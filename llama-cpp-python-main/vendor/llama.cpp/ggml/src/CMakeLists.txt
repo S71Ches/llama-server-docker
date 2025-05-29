@@ -109,6 +109,8 @@ if (MSVC)
 else ()
     set(CMAKE_GENERATOR_PLATFORM_LWR "")
 endif ()
+ggml_get_system_arch()
+message(STATUS "GGML_SYSTEM_ARCH: ${GGML_SYSTEM_ARCH}")
 
 if (NOT MSVC)
     if (GGML_STATIC)
@@ -214,7 +216,7 @@ add_library(ggml
 target_link_libraries(ggml PUBLIC ggml-base)
 
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
-    target_link_libraries(ggml PRIVATE dl stdc++fs)
+    target_link_libraries(ggml PRIVATE dl)
 endif()
 
 function(ggml_add_backend_library backend)
