@@ -30,7 +30,7 @@ RUN cmake -B build \
         -DLLAMA_BUILD_EXAMPLES=OFF \
         -DLLAMA_BUILD_TOOLS=OFF \
         . && \
-    cmake --build build --target llama --parallel 2
+    cmake --build build --target llama -- -j1
 
 # 3b) Устанавливаем Python-модуль, использующий уже собранный C++
 WORKDIR /app/llama-cpp-python
