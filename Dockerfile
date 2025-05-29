@@ -18,21 +18,30 @@ RUN wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/c
     mv cloudflared-linux-amd64 /usr/local/bin/cloudflared && \
     chmod +x /usr/local/bin/cloudflared
 
-# 3) Копируем Python-модуль llama-cpp-python с вложенным llama.cpp
+# 3) Сборка и установка llama-cpp-python с поддержкой CUDA
 WORKDIR /app
 COPY llama-cpp-python-main ./llama-cpp-python
-RUN LLAMA_CUBLAS=1 pip install ./llama-cpp-python
 
-# 4) Устанавливаем остальное
+# 3a) Собираем C++-движок с CUDA
+WORKDIR /app/llama-cpp-python/vendor/llama.cpp
+RUN cmake -B build -DGGML_CUDA=on . && \
+    cmake --build build --parallel 2
+
+# 3b) Устанавливаем Python-модуль, связанный с уже собранным C++
+WORKDIR /app/llama-cpp-python
+RUN FORCE_CMAKE=1 pip install . --no-cache-dir
+
+# 4) Устанавливаем остальные зависимости
+WORKDIR /app
 RUN pip install --no-cache-dir fastapi uvicorn[standard] requests
 
-# 5) Копируем код и точку входа
+# 5) Копируем код приложения и точку входа
 COPY server.py entrypoint.sh ./
 RUN chmod +x entrypoint.sh
 
 # 6) Папка для модели
 RUN mkdir -p /models
 
-# 7) Экспорт порта и запуск
+# 7) Порт и запуск
 EXPOSE ${PORT}
 ENTRYPOINT ["./entrypoint.sh"]
