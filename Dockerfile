@@ -29,6 +29,7 @@ RUN cmake -B build \
         -DLLAMA_BUILD_TESTS=OFF \
         -DLLAMA_BUILD_EXAMPLES=OFF \
         -DLLAMA_BUILD_TOOLS=OFF \
+        -DLLAMA_BUILD_INFO=OFF \
         . && \
     cmake --build build --target llama -- -j1
 
