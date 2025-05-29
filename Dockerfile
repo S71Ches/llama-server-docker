@@ -21,7 +21,7 @@ RUN wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/c
 # 3) Копируем Python-модуль llama-cpp-python с вложенным llama.cpp
 WORKDIR /app
 COPY llama-cpp-python-main ./llama-cpp-python
-RUN pip install ./llama-cpp-python
+RUN LLAMA_CUBLAS=1 pip install ./llama-cpp-python
 
 # 4) Устанавливаем остальное
 RUN pip install --no-cache-dir fastapi uvicorn[standard] requests
