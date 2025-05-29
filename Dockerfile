@@ -18,9 +18,10 @@ RUN wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/c
     mv cloudflared-linux-amd64 /usr/local/bin/cloudflared && \
     chmod +x /usr/local/bin/cloudflared
 
-# 3) Копируем Python-модуль llama-cpp-python с вложенным llama.cpp
-WORKDIR /app
-COPY llama-cpp-python-main ./llama-cpp-python
+# 3) Клонируем llama-cpp-python сразу из GitHub со всеми сабмодулями
+RUN git clone --recurse-submodules \
+     https://github.com/abetlen/llama-cpp-python.git \
+     /app/llama-cpp-python
 
 # 3a) Собираем C++-движок с поддержкой CUDA, отключая тесты, примеры и инструменты
 WORKDIR /app/llama-cpp-python/vendor/llama.cpp
@@ -29,7 +30,6 @@ RUN cmake -B build \
         -DLLAMA_BUILD_TESTS=OFF \
         -DLLAMA_BUILD_EXAMPLES=OFF \
         -DLLAMA_BUILD_TOOLS=OFF \
-        -DLLAMA_BUILD_INFO=OFF \
         . && \
     cmake --build build --target llama -- -j1
 
