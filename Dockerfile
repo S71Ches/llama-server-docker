@@ -30,7 +30,7 @@ RUN git clone --recurse-submodules \
      /app/llama-cpp-python
 
 # 3a) Собираем C++-движок с поддержкой CUDA, отключая тесты, примеры и инструменты
-WORKDIR /app/llama-cpp-python/vendor/llama.cpp
+WORKDIR /app/llama-cpp-python
 RUN cmake -B build \
         -DGGML_CUDA=ON \
         -DLLAMA_BUILD_TESTS=OFF \
