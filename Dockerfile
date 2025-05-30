@@ -22,12 +22,13 @@ RUN apt-get update && \
     add-apt-repository universe && \
     rm -rf /var/lib/apt/lists/*
 
-# 1) Системные зависимости + апгрейд pip/setuptools/wheel
+# 1) Системные зависимости + апгрейд pip/setuptools/wheel + ccache
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
         build-essential git cmake ninja-build wget curl unzip \
         python3 python3-pip python3-dev \
-        libopenblas-dev libssl-dev zlib1g-dev libcurl4-openssl-dev && \
+        libopenblas-dev libssl-dev zlib1g-dev libcurl4-openssl-dev \
+        ccache && \
     rm -rf /var/lib/apt/lists/* && \
     python3 -m pip install --upgrade pip setuptools wheel
 
@@ -41,23 +42,23 @@ RUN git clone --recurse-submodules \
       https://github.com/abetlen/llama-cpp-python.git \
       /app/llama-cpp-python
 
-# 3a) Патчим CMakeLists в llama.cpp для линковки libcuda.so
+# 3a) Патчим CMakeLists: находим libcuda.so через find_library и добавляем к линковке
 WORKDIR /app/llama-cpp-python/vendor/llama.cpp
-RUN sed -i \
-    's/target_link_libraries(ggml PUBLIC CUDA::cudart)/\
-target_link_libraries(ggml PUBLIC CUDA::cudart cuda)/' \
-    CMakeLists.txt
+RUN sed -i '1ifind_library(CUDA_DRIVER_LIBRARY NAMES cuda PATHS /usr/local/cuda/lib64)' CMakeLists.txt \
+ && sed -i 's/target_link_libraries(ggml PUBLIC CUDA::cudart)/target_link_libraries(ggml PUBLIC CUDA::cudart ${CUDA_DRIVER_LIBRARY})/' CMakeLists.txt
 
-# 3b) Параллельная сборка и установка llama_cpp_python с CUDA
+# 3b) Сборка llama-cpp-python с CUDA, включаем ccache, параллелизм = 4
 WORKDIR /app/llama-cpp-python
-RUN export CMAKE_ARGS="-DGGML_CUDA=ON \
+ENV CMAKE_ARGS="-DGGML_CUDA=ON \
+    -DGGML_CCACHE=ON \
     -DLLAMA_BUILD_TESTS=OFF \
     -DLLAMA_BUILD_EXAMPLES=OFF \
-    -DLLAMA_BUILD_TOOLS=OFF" \
- && export CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) \
- && export MAKEFLAGS="-j$(nproc)" \
- && export FORCE_CMAKE=1 \
- && pip install . --no-cache-dir
+    -DLLAMA_BUILD_TOOLS=OFF \
+    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache" \
+    CMAKE_BUILD_PARALLEL_LEVEL=4 \
+    MAKEFLAGS="-j4" \
+    FORCE_CMAKE=1
+RUN pip3 install . --no-cache-dir --verbose
 
 # 4) Остальные зависимости приложения
 WORKDIR /app
