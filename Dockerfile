@@ -11,28 +11,34 @@ RUN apt-get update && \
     add-apt-repository universe && \
     rm -rf /var/lib/apt/lists/*
 
-# 1) Системные зависимости + апгрейд pip
+# 1) Системные зависимости + апгрейд pip/setuptools
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
         build-essential git cmake ninja-build wget curl unzip \
         python3 python3-pip python3-dev \
         libopenblas-dev libssl-dev zlib1g-dev libcurl4-openssl-dev && \
     rm -rf /var/lib/apt/lists/* && \
-    python3 -m pip install --upgrade pip
+    python3 -m pip install --upgrade pip setuptools wheel
 
 # 2) Cloudflared для туннеля
 RUN wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 && \
     mv cloudflared-linux-amd64 /usr/local/bin/cloudflared && \
     chmod +x /usr/local/bin/cloudflared
 
-# 3) Клонируем llama-cpp-python сразу из GitHub со всеми сабмодулями
-RUN git clone --recurse-submodules https://github.com/abetlen/llama-cpp-python.git /app/llama-cpp-python
+# 3) Клонируем llama-cpp-python со всеми сабмодулями
+RUN git clone --recurse-submodules \
+      https://github.com/abetlen/llama-cpp-python.git \
+      /app/llama-cpp-python
 
-# 3a) Устанавливаем Python-модуль с поддержкой CUDA
+# 3a) Собираем и устанавливаем Python-модуль с CUDA
 WORKDIR /app/llama-cpp-python
+
+# Перед pip install: прокидываем аргументы для CMake
+ENV CMAKE_ARGS="-DLLAMA_CUBLAS=on -DPYTHON_EXECUTABLE=$(which python3)"
+
+# Собираем через pip (pip сам подтянет scikit-build-core и пр. зависимости)
 RUN FORCE_CMAKE=1 \
-    CMAKE_ARGS="-DLLAMA_CUBLAS=on -GUnix\ Makefiles -DPYTHON_EXECUTABLE=$(which python3)" \
-    pip install . --no-cache-dir --no-build-isolation
+    pip install . --no-cache-dir
 
 # 4) Устанавливаем остальные зависимости приложения
 WORKDIR /app
