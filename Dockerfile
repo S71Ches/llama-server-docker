@@ -25,15 +25,20 @@ RUN wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/c
     mv cloudflared-linux-amd64 /usr/local/bin/cloudflared && \
     chmod +x /usr/local/bin/cloudflared
 
-# 3) Клонируем llama-cpp-python
+# 3) Клонируем llama-cpp-python со всеми сабмодулями
 RUN git clone --recurse-submodules \
       https://github.com/abetlen/llama-cpp-python.git \
       /app/llama-cpp-python
 
-# 3a) Параллельная сборка и установка llama_cpp_python с CUDA
-WORKDIR /app/llama-cpp-python
+# 3a) Патчим CMakeLists в llama.cpp для линковки libcuda.so
+WORKDIR /app/llama-cpp-python/vendor/llama.cpp
+RUN sed -i \
+    's/target_link_libraries(ggml PUBLIC CUDA::cudart)/\
+target_link_libraries(ggml PUBLIC CUDA::cudart cuda)/' \
+    CMakeLists.txt
 
-# Здесь прокидываем флаг для CUDA и переменные для параллельного билда
+# 3b) Параллельная сборка и установка llama_cpp_python с CUDA
+WORKDIR /app/llama-cpp-python
 RUN export CMAKE_ARGS="-DGGML_CUDA=ON" \
  && export CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) \
  && export MAKEFLAGS="-j$(nproc)" \
