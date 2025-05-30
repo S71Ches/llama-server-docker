@@ -8,8 +8,7 @@ ENV PORT=${PORT} WORKERS=${WORKERS}
 # 0.1) Переключаем APT на HTTPS-репозитории (чтобы не было 403)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-      apt-transport-https \
-      ca-certificates && \
+      apt-transport-https ca-certificates && \
     sed -i \
       -e 's|http://archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' \
       -e 's|http://security.ubuntu.com/ubuntu|https://security.ubuntu.com/ubuntu|g' \
@@ -22,13 +21,13 @@ RUN apt-get update && \
     add-apt-repository universe && \
     rm -rf /var/lib/apt/lists/*
 
-# 1) Системные зависимости + апгрейд pip/setuptools/wheel + ccache
+# 1) Системные зависимости + апгрейд pip/setuptools/wheel + ccache + cuda-drivers
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
-        build-essential git cmake ninja-build wget curl unzip \
-        python3 python3-pip python3-dev \
-        libopenblas-dev libssl-dev zlib1g-dev libcurl4-openssl-dev \
-        ccache && \
+      build-essential git cmake ninja-build wget curl unzip \
+      python3 python3-pip python3-dev \
+      libopenblas-dev libssl-dev zlib1g-dev libcurl4-openssl-dev \
+      ccache cuda-drivers && \
     rm -rf /var/lib/apt/lists/* && \
     python3 -m pip install --upgrade pip setuptools wheel
 
@@ -42,19 +41,15 @@ RUN git clone --recurse-submodules \
       https://github.com/abetlen/llama-cpp-python.git \
       /app/llama-cpp-python
 
-# 3a) Патчим CMakeLists: находим libcuda.so через find_library и добавляем к линковке
-WORKDIR /app/llama-cpp-python/vendor/llama.cpp
-RUN sed -i '1ifind_library(CUDA_DRIVER_LIBRARY NAMES cuda PATHS /usr/local/cuda/lib64)' CMakeLists.txt \
- && sed -i 's/target_link_libraries(ggml PUBLIC CUDA::cudart)/target_link_libraries(ggml PUBLIC CUDA::cudart ${CUDA_DRIVER_LIBRARY})/' CMakeLists.txt
-
-# 3b) Сборка llama-cpp-python с CUDA, включаем ccache, параллелизм = 4
+# 3b) Сборка llama-cpp-python с CUDA, ccache, параллелизм = 4, и линковка -lcuda без правки CMakeLists
 WORKDIR /app/llama-cpp-python
 ENV CMAKE_ARGS="-DGGML_CUDA=ON \
     -DGGML_CCACHE=ON \
     -DLLAMA_BUILD_TESTS=OFF \
     -DLLAMA_BUILD_EXAMPLES=OFF \
     -DLLAMA_BUILD_TOOLS=OFF \
-    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache" \
+    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+    -DCMAKE_SHARED_LINKER_FLAGS=-lcuda" \
     CMAKE_BUILD_PARALLEL_LEVEL=4 \
     MAKEFLAGS="-j4" \
     FORCE_CMAKE=1
