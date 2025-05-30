@@ -5,13 +5,13 @@ ARG PORT=8000
 ARG WORKERS=1
 ENV PORT=${PORT} WORKERS=${WORKERS}
 
-# 1.0) Включаем репозиторий universe
+# 1.0) Репозиторий universe
 RUN apt-get update && \
     apt-get install -y --no-install-recommends software-properties-common && \
     add-apt-repository universe && \
     rm -rf /var/lib/apt/lists/*
 
-# 1) Системные зависимости + апгрейд pip/setuptools
+# 1) Системные зависимости + апгрейд pip/setuptools/wheel
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
         build-essential git cmake ninja-build wget curl unzip \
@@ -30,17 +30,16 @@ RUN git clone --recurse-submodules \
       https://github.com/abetlen/llama-cpp-python.git \
       /app/llama-cpp-python
 
-# 3a) Собираем и устанавливаем Python-модуль с CUDA
+# 3a) Устанавливаем Python-модуль с поддержкой CUDA через legacy setup.py
 WORKDIR /app/llama-cpp-python
 
-# Перед pip install: прокидываем аргументы для CMake
+# Трубы в CMake
 ENV CMAKE_ARGS="-DLLAMA_CUBLAS=on -DPYTHON_EXECUTABLE=$(which python3)"
 
-# Собираем через pip (pip сам подтянет scikit-build-core и пр. зависимости)
 RUN FORCE_CMAKE=1 \
-    pip install . --no-cache-dir
+    pip install . --no-cache-dir --no-use-pep517
 
-# 4) Устанавливаем остальные зависимости приложения
+# 4) Остальные зависимости приложения
 WORKDIR /app
 RUN pip install --no-cache-dir fastapi uvicorn[standard] requests
 
