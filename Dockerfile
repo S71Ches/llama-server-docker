@@ -1,7 +1,8 @@
 # 0) Базовый образ с CUDA
 FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
 
-ARG PORT=8000 WORKERS=1
+ARG PORT=8000
+ARG WORKERS=1
 ENV PORT=${PORT} WORKERS=${WORKERS}
 
 # 1.0) Включаем репозиторий universe
@@ -10,12 +11,12 @@ RUN apt-get update && \
     add-apt-repository universe && \
     rm -rf /var/lib/apt/lists/*
 
-# 1) Системные зависимости  +  апгрейд pip
+# 1) Системные зависимости + апгрейд pip
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
-      build-essential git cmake ninja-build wget curl unzip \
-      python3 python3-pip python3-dev \
-      libopenblas-dev libssl-dev zlib1g-dev libcurl4-openssl-dev && \
+        build-essential git cmake ninja-build wget curl unzip \
+        python3 python3-pip python3-dev \
+        libopenblas-dev libssl-dev zlib1g-dev libcurl4-openssl-dev && \
     rm -rf /var/lib/apt/lists/* && \
     python3 -m pip install --upgrade pip
 
@@ -25,22 +26,11 @@ RUN wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/c
     chmod +x /usr/local/bin/cloudflared
 
 # 3) Клонируем llama-cpp-python сразу из GitHub со всеми сабмодулями
-RUN git clone --recurse-submodules \
-     https://github.com/abetlen/llama-cpp-python.git \
-     /app/llama-cpp-python
+RUN git clone --recurse-submodules https://github.com/abetlen/llama-cpp-python.git /app/llama-cpp-python
 
-# 3a) Собираем C++-движок с поддержкой CUDA, отключая тесты, примеры и инструменты
+# 3.1) Устанавливаем Python-модуль с поддержкой CUDA
 WORKDIR /app/llama-cpp-python
-RUN cmake -B build \
-        -DGGML_CUDA=ON \
-        -DLLAMA_BUILD_TESTS=OFF \
-        -DLLAMA_BUILD_EXAMPLES=OFF \
-        -DLLAMA_BUILD_TOOLS=OFF \
-        . && \
-    cmake --build build --target llama_cpp_python  -- -j1
-
-# 3b) Устанавливаем Python-модуль, использующий уже собранный C++
-WORKDIR /app/llama-cpp-python
+ENV CMAKE_ARGS="-DLLAMA_CUBLAS=on"
 RUN FORCE_CMAKE=1 pip install . --no-cache-dir
 
 # 4) Устанавливаем остальные зависимости приложения
