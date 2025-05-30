@@ -5,6 +5,17 @@ ARG PORT=8000
 ARG WORKERS=1
 ENV PORT=${PORT} WORKERS=${WORKERS}
 
+# 0.1) Переключаем APT на HTTPS-репозитории (чтобы не было 403)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      apt-transport-https \
+      ca-certificates && \
+    sed -i \
+      -e 's|http://archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' \
+      -e 's|http://security.ubuntu.com/ubuntu|https://security.ubuntu.com/ubuntu|g' \
+      /etc/apt/sources.list && \
+    rm -rf /var/lib/apt/lists/*
+
 # 1.0) Репозиторий universe
 RUN apt-get update && \
     apt-get install -y --no-install-recommends software-properties-common && \
