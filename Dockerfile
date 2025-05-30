@@ -28,10 +28,11 @@ RUN wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/c
 # 3) Клонируем llama-cpp-python сразу из GitHub со всеми сабмодулями
 RUN git clone --recurse-submodules https://github.com/abetlen/llama-cpp-python.git /app/llama-cpp-python
 
-# 3.1) Устанавливаем Python-модуль с поддержкой CUDA
+# 3a) Устанавливаем Python-модуль с поддержкой CUDA
 WORKDIR /app/llama-cpp-python
-ENV CMAKE_ARGS="-DLLAMA_CUBLAS=on"
-RUN FORCE_CMAKE=1 pip install . --no-cache-dir
+RUN FORCE_CMAKE=1 \
+    CMAKE_ARGS="-DLLAMA_CUBLAS=on -GUnix\ Makefiles -DPYTHON_EXECUTABLE=$(which python3)" \
+    pip install . --no-cache-dir --no-build-isolation
 
 # 4) Устанавливаем остальные зависимости приложения
 WORKDIR /app
