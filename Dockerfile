@@ -50,7 +50,10 @@ target_link_libraries(ggml PUBLIC CUDA::cudart cuda)/' \
 
 # 3b) Параллельная сборка и установка llama_cpp_python с CUDA
 WORKDIR /app/llama-cpp-python
-RUN export CMAKE_ARGS="-DGGML_CUDA=ON" \
+RUN export CMAKE_ARGS="-DGGML_CUDA=ON \
+    -DLLAMA_BUILD_TESTS=OFF \
+    -DLLAMA_BUILD_EXAMPLES=OFF \
+    -DLLAMA_BUILD_TOOLS=OFF" \
  && export CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) \
  && export MAKEFLAGS="-j$(nproc)" \
  && export FORCE_CMAKE=1 \
