@@ -12,7 +12,7 @@ ENV PORT=${PORT} \
     WORKERS=${WORKERS}
 
 # ------------------------------------------------------------
-# 2) Настройка APT: HTTPS-репозитории + universe
+# 2) Настройка APT: HTTPS-репозитории + подключение universe
 # ------------------------------------------------------------
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -26,14 +26,14 @@ RUN apt-get update && \
       -e 's|http://security.ubuntu.com/ubuntu|https://security.ubuntu.com/ubuntu|g' \
       /etc/apt/sources.list && \
     \
-    # Добавляем universe (по необходимости дополнительных пакетов)
+    # Подключаем universe-пакеты (если понадобится ПО из universe)
     add-apt-repository universe && \
     \
     # Очищаем кеш apt
     rm -rf /var/lib/apt/lists/*
 
 # ------------------------------------------------------------
-# 3) Системные зависимости + ccache + Python (CUDA-Toolchain уже в образе)
+# 3) Системные зависимости + ccache + Python (CUDA-Toolchain уже есть)
 # ------------------------------------------------------------
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -56,8 +56,12 @@ RUN apt-get update && \
     # Очищаем кеш apt после установки
     rm -rf /var/lib/apt/lists/* && \
     \
-    # Обновляем pip, setuptools, wheel
-    python3 -m pip install --upgrade pip setuptools wheel
+    # Обновляем pip, setuptools и wheel
+    python3 -m pip install --upgrade pip setuptools wheel && \
+    \
+    # 3.1) Устанавливаем символическую ссылку на stub-версию libcuda.so,
+    #      чтобы линковщик мог найти libcuda.so.1
+    ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/lib/x86_64-linux-gnu/libcuda.so.1
 
 # ------------------------------------------------------------
 # 4) Установка cloudflared для Cloudflare Tunnel
@@ -88,7 +92,7 @@ ENV CMAKE_ARGS="-DGGML_CUDA=ON \
     MAKEFLAGS="-j4" \
     FORCE_CMAKE=1
 
-# Теперь при линковке «libggml-cuda.so» NVCC найдёт stub-версию libcuda.so в /usr/local/cuda/lib64/stubs
+# Здесь pip3 install . линкует libggml-cuda.so с libcuda.so.1 (через нашу ссылку)
 RUN pip3 install . --no-cache-dir --verbose
 
 # ------------------------------------------------------------
