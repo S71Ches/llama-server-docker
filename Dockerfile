@@ -1,5 +1,5 @@
 # ------------------------------------------------------------
-# 0) Базовый образ NVIDIA CUDA 12.2 (dev-пакет)
+# 0) Базовый образ NVIDIA CUDA 12.2 (developer)
 # ------------------------------------------------------------
 FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
 
@@ -12,12 +12,7 @@ ENV PORT=${PORT} \
     WORKERS=${WORKERS}
 
 # ------------------------------------------------------------
-# 2) Очищаем встроенные NVIDIA-пакеты, чтобы подхватить драйвер хоста
-# ------------------------------------------------------------
-RUN apt-get purge -y 'nvidia-*' 'libnvidia*' || true && rm -rf /var/lib/apt/lists/*
-
-# ------------------------------------------------------------
-# 3) Настройка APT: HTTPS-репозитории + подключение universe
+# 2) Настройка APT: HTTPS-репозитории + universe
 # ------------------------------------------------------------
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -25,20 +20,20 @@ RUN apt-get update && \
       ca-certificates \
       software-properties-common && \
     \
-    # Переключаем все “http” → “https” в sources.list, чтобы не было 403
+    # Переключаем HTTP → HTTPS, чтобы не было 403
     sed -i \
       -e 's|http://archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' \
       -e 's|http://security.ubuntu.com/ubuntu|https://security.ubuntu.com/ubuntu|g' \
       /etc/apt/sources.list && \
     \
-    # Подключаем universe-пакеты (если понадобится что-то из этого репозитория)
+    # Добавляем universe (по необходимости дополнительных пакетов)
     add-apt-repository universe && \
     \
-    # Очищаем кеш apt, чтобы уменьшить размер слоя
+    # Очищаем кеш apt
     rm -rf /var/lib/apt/lists/*
 
 # ------------------------------------------------------------
-# 4) Системные зависимости + ccache + Python (CUDA-тулчейн уже есть в образе)
+# 3) Системные зависимости + ccache + Python (CUDA-Toolchain уже в образе)
 # ------------------------------------------------------------
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -61,18 +56,18 @@ RUN apt-get update && \
     # Очищаем кеш apt после установки
     rm -rf /var/lib/apt/lists/* && \
     \
-    # Обновляем pip, setuptools и wheel
+    # Обновляем pip, setuptools, wheel
     python3 -m pip install --upgrade pip setuptools wheel
 
 # ------------------------------------------------------------
-# 5) Установка cloudflared для Cloudflare Tunnel
+# 4) Установка cloudflared для Cloudflare Tunnel
 # ------------------------------------------------------------
 RUN wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 && \
     mv cloudflared-linux-amd64 /usr/local/bin/cloudflared && \
     chmod +x /usr/local/bin/cloudflared
 
 # ------------------------------------------------------------
-# 6) Клонируем llama-cpp-python и собираем с поддержкой CUDA
+# 5) Клонируем llama-cpp-python и собираем с поддержкой CUDA
 # ------------------------------------------------------------
 RUN git clone --recurse-submodules \
       https://github.com/abetlen/llama-cpp-python.git \
@@ -80,7 +75,6 @@ RUN git clone --recurse-submodules \
 
 WORKDIR /app/llama-cpp-python
 
-# Собираем llama-cpp-python с GGML_CUDA=ON и ограничением архитектур CUDA
 ENV CMAKE_ARGS="-DGGML_CUDA=ON \
     -DGGML_CCACHE=ON \
     -DCMAKE_BUILD_TYPE=Release \
@@ -94,25 +88,25 @@ ENV CMAKE_ARGS="-DGGML_CUDA=ON \
     MAKEFLAGS="-j4" \
     FORCE_CMAKE=1
 
+# Теперь при линковке «libggml-cuda.so» NVCC найдёт stub-версию libcuda.so в /usr/local/cuda/lib64/stubs
 RUN pip3 install . --no-cache-dir --verbose
 
 # ------------------------------------------------------------
-# 7) Установка дополнительных Python-зависимостей и копирование приложения
+# 6) Установка дополнительных Python-зависимостей и копирование приложения
 # ------------------------------------------------------------
 WORKDIR /app
-
 RUN pip install --no-cache-dir fastapi uvicorn[standard] requests
 
 COPY server.py entrypoint.sh ./
 RUN chmod +x entrypoint.sh
 
 # ------------------------------------------------------------
-# 8) Папка для моделей
+# 7) Папка для моделей
 # ------------------------------------------------------------
 RUN mkdir -p /models
 
 # ------------------------------------------------------------
-# 9) Открываем порт и задаём точку входа
+# 8) Открываем порт и задаём точку входа
 # ------------------------------------------------------------
 EXPOSE ${PORT}
 ENTRYPOINT ["./entrypoint.sh"]
