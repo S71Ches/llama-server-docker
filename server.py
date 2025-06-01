@@ -50,20 +50,19 @@ def root():
     return {"message": "Модель загружена и готова!"}
 
 # 4) Структура запроса
-class ChatRequest(BaseModel):
-    messages: list[dict]
-
+class InstructionRequest(BaseModel):
+    inputs: str
+    
 # 5) Обработчик чата (async, чтобы не блокировать event loop)
-@app.post("/v1/chat/completions")
-async def chat(req: ChatRequest):
-    prompt = "\n".join(f"{m['role']}: {m['content']}" for m in req.messages)
+@app.post("/v1/completions")
+async def instruct(req: InstructionRequest):
+    prompt = req.inputs
 
-    # Генерация в отдельном потоке/воркере
     loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(executor, lambda: 
+    result = await loop.run_in_executor(executor, lambda:
         llm(
             prompt=prompt,
-            max_tokens=128,
+            max_tokens=256,  # можно больше, если хочешь длиннее ответы
             temperature=0.7,
             top_p=0.9,
             top_k=50,
@@ -72,7 +71,5 @@ async def chat(req: ChatRequest):
     )
 
     return {
-        "choices": [
-            {"message": {"role": "assistant", "content": result["choices"][0]["text"]}}
-        ]
+        "text": result["choices"][0]["text"]
     }
