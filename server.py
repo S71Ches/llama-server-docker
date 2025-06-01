@@ -41,7 +41,7 @@ print(f"[startup] free_vram={free_vram} MB, n_gpu_layers={gpu_layers}")
 # 2) Инициализация Llama с оптимальными параметрами
 llm = Llama(
     model_path="/models/model.gguf",
-    n_gpu_layers=gpu_layers,
+    n_gpu_layers=65,
     n_ctx=4096,            # «длинная» контекстная память
     n_threads=os.cpu_count(),
     n_batch=512,
