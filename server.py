@@ -10,33 +10,6 @@ app = FastAPI()
 
 # ——————————————————————————————————————————————————
 # 1) Получаем свободную VRAM и динамически выставляем n_gpu_layers
-def get_free_vram_mb() -> int:
-    try:
-        out = subprocess.check_output([
-            'nvidia-smi', '--query-gpu=memory.free', '--format=csv,noheader,nounits'
-        ]).decode('utf-8').strip().split('\n')
-        return int(out[0])  # берём первую карту
-    except Exception:
-        return 0
-
-def calc_gpu_layers(free_vram_mb: int, model_size="13b", max_layers=45) -> int:
-    # Примерно: 500 MB на слой для 13B Q6_K
-    MB_PER_LAYER = 500
-    RESERVED_MB = 3000  # запас для токенов, контекста, буферов и т.д.
-    MIN_LAYERS = 8
-
-    if free_vram_mb < RESERVED_MB:
-        return 0  # GPU не трогаем
-
-    usable = free_vram_mb - RESERVED_MB
-    estimated = usable // MB_PER_LAYER
-    return max(MIN_LAYERS, min(estimated, max_layers))
-
-# Вычисляем
-free_vram = get_free_vram_mb()
-gpu_layers = calc_gpu_layers(free_vram)
-
-print(f"[startup] free_vram={free_vram} MB, n_gpu_layers={gpu_layers}")
 
 # 2) Инициализация Llama с оптимальными параметрами
 llm = Llama(
