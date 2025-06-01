@@ -34,7 +34,7 @@ RUN apt-get update && \
 
 # ------------------------------------------------------------
 # 3) Системные зависимости + ccache + Python + nvidia-cuda-toolkit
-#    (nvidia-cuda-toolkit добавляет stub-библиотеку libcuda.so)
+#    (нужен nvidia-cuda-toolkit, чтобы появился libcuda.so на этапе сборки)
 # ------------------------------------------------------------
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -77,11 +77,12 @@ RUN git clone --recurse-submodules \
 
 WORKDIR /app/llama-cpp-python
 
-# Сборка llama-cpp-python с флагом GGML_CUDA=ON и ccache, параллелизм = 4
-# Обязательно оставляем линковку -lcuda, чтобы CUDA-вызовы работали
+# Сборка llama-cpp-python с флагом GGML_CUDA=ON, ccache, параллелизм = 4,
+# и явным ограничением архитектуры CUDA до 8.6 (A5000, A40, 3090 и т.п.)
 ENV CMAKE_ARGS="-DGGML_CUDA=ON \
     -DGGML_CCACHE=ON \
     -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_CUDA_ARCHITECTURES=86 \
     -DLLAMA_BUILD_TESTS=OFF \
     -DLLAMA_BUILD_EXAMPLES=OFF \
     -DLLAMA_BUILD_TOOLS=OFF \
