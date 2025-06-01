@@ -1,4 +1,6 @@
+# ------------------------------------------------------------
 # 0) Базовый образ RunPod (CUDA-библиотеки уже согласованы с хостом)
+# ------------------------------------------------------------
 FROM runpod/pytorch:2.1.0-py3.10-cuda11.8.0-devel-ubuntu22.04
 
 # ------------------------------------------------------------
@@ -31,7 +33,8 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # ------------------------------------------------------------
-# 3) Системные зависимости + ccache + Python (без cuda-drivers!)
+# 3) Системные зависимости + ccache + Python + nvidia-cuda-toolkit
+#    (nvidia-cuda-toolkit добавляет stub-библиотеку libcuda.so)
 # ------------------------------------------------------------
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -49,9 +52,10 @@ RUN apt-get update && \
       libssl-dev \
       zlib1g-dev \
       libcurl4-openssl-dev \
-      ccache && \
+      ccache \
+      nvidia-cuda-toolkit && \
     \
-    # Очищаем кеш apt снова
+    # Очищаем кеш apt после установки
     rm -rf /var/lib/apt/lists/* && \
     \
     # Обновляем pip, setuptools и wheel
