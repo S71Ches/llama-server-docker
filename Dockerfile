@@ -33,7 +33,8 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # ------------------------------------------------------------
-# 3) Системные зависимости + ccache + Python (CUDA Toolchain уже есть в образе)
+# 3) Системные зависимости + ccache + Python + nvidia-cuda-toolkit
+#    (nvidia-cuda-toolkit даёт libcuda.so для линковки CUDA-кода)
 # ------------------------------------------------------------
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -51,7 +52,8 @@ RUN apt-get update && \
       libssl-dev \
       zlib1g-dev \
       libcurl4-openssl-dev \
-      ccache && \
+      ccache \
+      nvidia-cuda-toolkit && \
     \
     # Очищаем кеш apt после установки
     rm -rf /var/lib/apt/lists/* && \
@@ -76,7 +78,7 @@ RUN git clone --recurse-submodules \
 WORKDIR /app/llama-cpp-python
 
 # Сборка llama-cpp-python с флагом GGML_CUDA=ON, ccache, параллелизм=4,
-# и ограничением архитектур CUDA до 8.0 и 8.6 (Ampere/A40/A5000/3090 и т.п.)
+# и ограничением архитектур CUDA до 8.0 и 8.6 (Ampere-архитектуры)
 ENV CMAKE_ARGS="-DGGML_CUDA=ON \
     -DGGML_CCACHE=ON \
     -DCMAKE_BUILD_TYPE=Release \
