@@ -78,11 +78,11 @@ RUN git clone --recurse-submodules \
 WORKDIR /app/llama-cpp-python
 
 # Сборка llama-cpp-python с флагом GGML_CUDA=ON, ccache, параллелизм = 4,
-# и явным ограничением архитектуры CUDA до 8.6 (A5000, A40, 3090 и т.п.)
+# и ограничением архитектур CUDA до 8.0 и 8.6 (Ampere/A40/A5000/3090)
 ENV CMAKE_ARGS="-DGGML_CUDA=ON \
     -DGGML_CCACHE=ON \
     -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_CUDA_ARCHITECTURES=86 \
+    -DCMAKE_CUDA_ARCHITECTURES=80;86 \
     -DLLAMA_BUILD_TESTS=OFF \
     -DLLAMA_BUILD_EXAMPLES=OFF \
     -DLLAMA_BUILD_TOOLS=OFF \
